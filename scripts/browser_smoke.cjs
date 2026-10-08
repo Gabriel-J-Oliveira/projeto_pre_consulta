@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const { authenticate } = require("./smoke_auth.cjs");
 
 const url = "http://127.0.0.1:8000/medico/pre-consultas/demo/";
 const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -18,7 +19,7 @@ function assert(condition, message) {
     if (message.type() === "error") runtimeErrors.push(message.text());
   });
 
-  const response = await page.goto(url, { waitUntil: "networkidle" });
+  const response = await authenticate(page, url);
   assert(response && response.status() === 200, "A página principal não retornou 200.");
   assert(await page.locator("#summary-title").isVisible(), "O resumo não está visível.");
   assert(await page.locator(".context-panel").isVisible(), "O painel de fontes não está visível.");

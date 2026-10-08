@@ -135,6 +135,22 @@ summary:focus-visible {
 .profile-label { color: var(--muted); font-size: 12px; }
 .profile-label strong { color: var(--ink); }
 
+.logout-form { margin: 0; }
+
+.logout-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #d4e1e2;
+  border-radius: 9px;
+  background: white;
+  color: var(--petrol);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.logout-button:hover { border-color: #9fc5bf; color: var(--green); }
+
 .avatar {
   display: grid;
   width: 34px;
@@ -559,6 +575,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 
 @media (max-width: 620px) {
   .topbar__inner { min-height: 64px; padding-right: 16px; padding-left: 16px; }
+  .topbar__meta { gap: 10px; }
   .prototype-pill { font-size: 0; }
   .prototype-pill::after { font-size: 10px; content: "Protótipo"; }
   .avatar { display: none; }

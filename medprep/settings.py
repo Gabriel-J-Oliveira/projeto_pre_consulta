@@ -90,6 +90,10 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "preconsultas:dashboard"
+LOGOUT_REDIRECT_URL = "accounts:login"
+
 media_root_value = os.getenv("DEMO_MEDIA_ROOT", "demo_media")
 DEMO_MEDIA_ROOT = (BASE_DIR / media_root_value).resolve()
 

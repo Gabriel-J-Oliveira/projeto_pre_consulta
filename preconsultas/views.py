@@ -4,6 +4,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -98,6 +99,7 @@ def _consultation():
     return consultation
 
 
+@login_required
 @require_GET
 def dashboard(request):
     today = timezone.localdate()
@@ -179,6 +181,7 @@ def dashboard(request):
     )
 
 
+@login_required
 @require_http_methods(["GET", "POST"])
 def reception_preconsultations(request):
     today = timezone.localdate()
@@ -330,6 +333,7 @@ def _media_state(source):
     }
 
 
+@login_required
 @require_GET
 def demo(request):
     consultation = _consultation()
@@ -377,6 +381,7 @@ def _form_error(form):
     )
 
 
+@login_required
 @require_POST
 def add_note(request):
     consultation = _consultation()
@@ -392,6 +397,7 @@ def add_note(request):
     return redirect("preconsultas:demo")
 
 
+@login_required
 @require_POST
 def correct_item(request):
     consultation = _consultation()
@@ -427,6 +433,7 @@ def correct_item(request):
     )
 
 
+@login_required
 @require_POST
 def add_feedback(request):
     consultation = _consultation()
@@ -450,6 +457,7 @@ def add_feedback(request):
     )
 
 
+@login_required
 @require_GET
 def attachment_status(request, source_key):
     source = get_object_or_404(
@@ -471,6 +479,7 @@ def attachment_status(request, source_key):
     )
 
 
+@login_required
 @require_GET
 def attachment_content(request, source_key):
     source = get_object_or_404(

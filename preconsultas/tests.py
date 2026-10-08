@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.contrib.staticfiles import finders
 from django.core.management import call_command
 from django.test import Client, TestCase
@@ -24,6 +25,10 @@ class DemoDataMixin:
     @classmethod
     def setUpTestData(cls):
         call_command("load_demo", verbosity=0)
+        cls.user = get_user_model().objects.create_user(username="usuario-interno-teste")
+
+    def setUp(self):
+        self.client.force_login(self.user)
 
 
 class DemoPageTests(DemoDataMixin, TestCase):
@@ -160,6 +165,7 @@ class DemoActionTests(DemoDataMixin, TestCase):
 
     def test_posts_require_csrf(self):
         csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
         response = csrf_client.post(
             reverse("preconsultas:add_feedback"),
             {"kind": Feedback.KIND_USEFUL},
@@ -402,6 +408,7 @@ class ReceptionPreconsultationTests(DemoDataMixin, TestCase):
 
     def test_reception_post_requires_csrf(self):
         csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
         response = csrf_client.post(
             reverse("recepcao:preconsultations"),
             self.valid_payload(),

@@ -28,6 +28,10 @@
         <span class="prototype-pill"><span></span> Protótipo — dados fictícios</span>
         <span class="profile-label">Perfil demonstrativo: <strong>Médico</strong></span>
         <span class="avatar" aria-hidden="true">HC</span>
+        <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button class="logout-button" type="submit">Sair</button>
+        </form>
       </div>
     </div>
   </header>

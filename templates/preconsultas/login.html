@@ -1,0 +1,70 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Acesso interno ao protótipo de pré-consulta Lume Saúde.">
+  <title>Entrar | Lume Saúde</title>
+  <link rel="icon" href="{% static 'preconsultas/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'preconsultas/demo.css' %}">
+  <link rel="stylesheet" href="{% static 'preconsultas/auth.css' %}">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-intro" aria-labelledby="auth-title">
+      <a class="brand auth-brand" href="{% url 'accounts:login' %}" aria-label="Lume Saúde — acesso interno">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img"><path d="M16 5v22M5 16h22"/></svg>
+        </span>
+        <span>Lume<span>saúde</span></span>
+      </a>
+      <span class="auth-eyebrow">Pré-consulta segura</span>
+      <h1 id="auth-title">Informação certa, antes do atendimento.</h1>
+      <p>Acesse o ambiente interno para acompanhar agendas e pré-consultas demonstrativas.</p>
+      <div class="auth-safety-note">
+        <span aria-hidden="true">✓</span>
+        <p>Protótipo com dados fictícios. O acesso de pacientes não faz parte desta etapa.</p>
+      </div>
+    </section>
+
+    <section class="auth-card" aria-labelledby="login-title">
+      <span class="prototype-pill"><span></span> Ambiente interno</span>
+      <div class="auth-card__heading">
+        <h2 id="login-title">Boas-vindas</h2>
+        <p>Entre com suas credenciais internas.</p>
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="auth-error" role="alert">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form class="auth-form" method="post" novalidate>
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+        <label for="{{ form.username.id_for_label }}">
+          <span>{{ form.username.label }}</span>
+          {{ form.username }}
+          {% for error in form.username.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+        </label>
+
+        <label for="{{ form.password.id_for_label }}">
+          <span>{{ form.password.label }}</span>
+          {{ form.password }}
+          {% for error in form.password.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+        </label>
+
+        <button class="auth-submit" type="submit">
+          Entrar
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+      <p class="auth-card__footnote">Acesso restrito a médicos, recepção e administração.</p>
+    </section>
+  </main>
+</body>
+</html>

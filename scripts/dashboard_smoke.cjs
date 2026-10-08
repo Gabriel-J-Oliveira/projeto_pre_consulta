@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const { authenticate } = require("./smoke_auth.cjs");
 
 const dashboardUrl = "http://127.0.0.1:8000/medico/painel/";
 const detailPath = "/medico/pre-consultas/demo/";
@@ -19,7 +20,7 @@ function assert(condition, message) {
     if (message.type() === "error") runtimeErrors.push(message.text());
   });
 
-  const response = await page.goto(dashboardUrl, { waitUntil: "networkidle" });
+  const response = await authenticate(page, dashboardUrl);
   assert(response && response.status() === 200, "O painel não retornou 200.");
   assert(await page.locator("#dashboard-title").isVisible(), "O título da agenda não está visível.");
   assert(await page.locator(".appointment-row").count() === 5, "A agenda de hoje não exibiu cinco casos.");

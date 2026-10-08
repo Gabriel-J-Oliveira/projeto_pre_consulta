@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const { authenticate } = require("./smoke_auth.cjs");
 
 const receptionUrl = "http://127.0.0.1:8000/recepcao/pre-consultas/";
 const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -18,7 +19,7 @@ function assert(condition, message) {
     if (message.type() === "error") runtimeErrors.push(message.text());
   });
 
-  const response = await page.goto(receptionUrl, { waitUntil: "networkidle" });
+  const response = await authenticate(page, receptionUrl);
   assert(response && response.status() === 200, "A tela da recepção não retornou 200.");
   assert(await page.locator("#reception-title").isVisible(), "O título operacional não está visível.");
   assert(await page.locator(".reception-row").count() === 6, "A lista inicial não exibiu seis registros.");

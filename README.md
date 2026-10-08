@@ -29,8 +29,13 @@ e não devem ser compartilhados ou enviados ao repositório.
 ```powershell
 python manage.py migrate
 python manage.py load_demo
+python manage.py createsuperuser
 python manage.py runserver 127.0.0.1:8000
 ```
+
+`createsuperuser` solicita as credenciais no terminal e armazena somente o hash da
+senha pelo mecanismo nativo do Django. Não existe usuário ou senha padrão. Depois do
+primeiro acesso, administradores podem cadastrar outros usuários internos pelo admin.
 
 Acesse:
 
