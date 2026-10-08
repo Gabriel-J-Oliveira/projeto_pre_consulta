@@ -1,0 +1,225 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agenda demonstrativa do médico com dados inteiramente fictícios.">
+  <title>Sua agenda | Lume Saúde</title>
+  <link rel="icon" href="{% static 'preconsultas/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'preconsultas/demo.css' %}">
+  <link rel="stylesheet" href="{% static 'preconsultas/dashboard.css' %}">
+  <script src="{% static 'preconsultas/dashboard.js' %}" defer></script>
+</head>
+<body class="dashboard-page">
+  <a class="skip-link" href="#agenda">Ir para a agenda</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="{% url 'preconsultas:dashboard' %}" aria-label="Lume Saúde — painel médico">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img"><path d="M16 5v22M5 16h22"/></svg>
+        </span>
+        <span>Lume<span>saúde</span></span>
+      </a>
+      <div class="topbar__meta">
+        <span class="prototype-pill"><span></span> Protótipo — dados fictícios</span>
+        <span class="profile-label">Perfil demonstrativo: <strong>Médico</strong></span>
+        <span class="avatar" aria-hidden="true">HC</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+    <section class="dashboard-intro" aria-labelledby="dashboard-title">
+      <div>
+        <span class="eyebrow eyebrow--green">{{ greeting }}, Dra. Helena</span>
+        <h1 id="dashboard-title">Sua agenda</h1>
+        <p>Veja seus atendimentos e acompanhe o preparo de cada pré-consulta.</p>
+      </div>
+      <div class="selected-day">
+        <span>{% if is_today %}Hoje{% else %}Data selecionada{% endif %}</span>
+        <strong>{{ selected_date|date:"l, d \d\e F" }}</strong>
+      </div>
+    </section>
+
+    <section class="overview-grid" aria-label="Visão geral da agenda">
+      <article class="next-card{% if not next_appointment %} next-card--empty{% endif %}">
+        <div class="next-card__label">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          Próximo atendimento
+        </div>
+        {% if next_appointment %}
+          <div class="next-card__content">
+            <time datetime="{{ next_appointment.display_scheduled_for|date:'c' }}">{{ next_appointment.display_scheduled_for|time:"H:i" }}</time>
+            <div class="next-card__patient">
+              <span class="patient-avatar" aria-hidden="true">{{ next_appointment.patient.name|slice:":1" }}</span>
+              <div>
+                <h2>{{ next_appointment.patient.name }}</h2>
+                <p>{{ next_appointment.appointment_type }}</p>
+              </div>
+            </div>
+            <div class="next-card__clinic">
+              <span>Clínica</span>
+              <strong>{{ next_appointment.clinic.name }}</strong>
+            </div>
+            <div class="next-card__state">
+              <span class="appointment-status appointment-status--{{ next_appointment.status_css }}">
+                <i aria-hidden="true"></i>{{ next_appointment.get_status_display }}
+              </span>
+              <small>{{ next_appointment.status_help }}</small>
+            </div>
+            <div class="next-card__action">
+              {% if next_appointment.can_open %}
+                <a class="open-button" href="{% url 'preconsultas:demo' %}">
+                  Abrir pré-consulta
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+              {% else %}
+                <span class="no-action">Nenhuma ação disponível</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="next-card__empty-state">
+            <span aria-hidden="true">✓</span>
+            <div><strong>Sem próximos atendimentos</strong><p>Não há outro horário futuro nesta data e clínica.</p></div>
+          </div>
+        {% endif %}
+      </article>
+
+      <div class="indicator-strip" aria-label="Indicadores da agenda filtrada">
+        <article>
+          <span class="indicator-icon indicator-icon--total" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+          </span>
+          <div><strong>{{ indicators.total }}</strong><span>Consultas do dia</span></div>
+        </article>
+        <article>
+          <span class="indicator-icon indicator-icon--ready" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7l8-4z"/><path d="M8.5 12l2.2 2.2 4.8-5"/></svg>
+          </span>
+          <div><strong>{{ indicators.ready }}</strong><span>Pré-consultas prontas</span></div>
+        </article>
+        <article>
+          <span class="indicator-icon indicator-icon--progress" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+          </span>
+          <div><strong>{{ indicators.progress }}</strong><span>Em andamento</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="agenda-card" id="agenda" aria-labelledby="agenda-title">
+      <div class="agenda-card__heading">
+        <div>
+          <span class="eyebrow">Agenda de trabalho</span>
+          <h2 id="agenda-title">Atendimentos</h2>
+        </div>
+        <span class="result-count">{{ appointments|length }} resultado{{ appointments|length|pluralize }}</span>
+      </div>
+
+      <form class="agenda-filters" method="get" action="{% url 'preconsultas:dashboard' %}">
+        <label class="search-control">
+          <span class="sr-only">Buscar paciente</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>
+          <input type="search" name="q" value="{{ query }}" placeholder="Buscar paciente fictício" autocomplete="off">
+        </label>
+        <div class="date-control">
+          <button type="button" class="date-step" data-date-step="-1" aria-label="Dia anterior">‹</button>
+          <label>
+            <span class="sr-only">Selecionar data</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+            <input type="date" name="data" value="{{ selected_date|date:'Y-m-d' }}">
+          </label>
+          <button type="button" class="date-step" data-date-step="1" aria-label="Próximo dia">›</button>
+        </div>
+        <label class="select-control">
+          <span class="sr-only">Filtrar por clínica</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V8l6-4 6 4v12M9 11h1M14 11h1M9 15h1M14 15h1"/></svg>
+          <select name="clinica">
+            <option value="">Todas as clínicas</option>
+            {% for clinic in clinics %}
+              <option value="{{ clinic.id }}"{% if selected_clinic == clinic.id|stringformat:'s' %} selected{% endif %}>{{ clinic.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="filter-button" type="submit">Aplicar</button>
+        {% if query or selected_clinic or not is_today %}
+          <a class="clear-filters" href="{% url 'preconsultas:dashboard' %}">Limpar filtros</a>
+        {% endif %}
+      </form>
+
+      {% if appointments %}
+        <div class="appointment-table" role="table" aria-label="Atendimentos ordenados por horário">
+          <div class="appointment-table__header" role="row">
+            <span role="columnheader">Horário</span>
+            <span role="columnheader">Paciente</span>
+            <span role="columnheader">Clínica</span>
+            <span role="columnheader">Tipo</span>
+            <span role="columnheader">Pré-consulta</span>
+            <span role="columnheader"><span class="sr-only">Ação</span></span>
+          </div>
+          <div class="appointment-list">
+            {% for appointment in appointments %}
+              <article class="appointment-row{% if appointment.is_next %} appointment-row--next{% endif %}" role="row" data-consultation="{{ appointment.slug }}" data-appointment-status="{{ appointment.status }}">
+                <div class="appointment-time" role="cell">
+                  <time datetime="{{ appointment.display_scheduled_for|date:'c' }}">{{ appointment.display_scheduled_for|time:"H:i" }}</time>
+                  {% if appointment.is_next %}<span>Próximo</span>{% endif %}
+                </div>
+                <div class="appointment-patient" role="cell">
+                  <span class="patient-avatar patient-avatar--small" aria-hidden="true">{{ appointment.patient.name|slice:":1" }}</span>
+                  <div><strong>{{ appointment.patient.name }}</strong><small>{{ appointment.patient.age }} anos</small></div>
+                </div>
+                <div class="appointment-clinic" role="cell">
+                  <strong>{{ appointment.clinic.name }}</strong>
+                </div>
+                <div class="appointment-type" role="cell">{{ appointment.appointment_type }}</div>
+                <div class="appointment-state" role="cell">
+                  <span class="appointment-status appointment-status--{{ appointment.status_css }}"><i aria-hidden="true"></i>{{ appointment.get_status_display }}</span>
+                  <small>{{ appointment.status_help }}</small>
+                </div>
+                <div class="appointment-action" role="cell">
+                  {% if appointment.can_open and not appointment.is_next %}
+                    <a href="{% url 'preconsultas:demo' %}" aria-label="Abrir pré-consulta de {{ appointment.patient.name }}">
+                      Abrir pré-consulta
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                  {% elif appointment.can_open %}
+                    <span class="featured-note">Em destaque acima</span>
+                  {% else %}
+                    <span class="locked-state" aria-label="Conteúdo clínico indisponível">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+                    </span>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="agenda-empty">
+          <span class="agenda-empty__icon" aria-hidden="true">
+            {% if empty_state == 'search' %}
+              <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5M8 10h4"/></svg>
+            {% else %}
+              <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+            {% endif %}
+          </span>
+          {% if empty_state == 'search' %}
+            <h3>Nenhum paciente encontrado</h3>
+            <p>Revise a busca ou limpe os filtros para voltar à agenda completa.</p>
+          {% else %}
+            <h3>Nenhuma consulta nesta data</h3>
+            <p>Selecione outra data ou clínica para visualizar os atendimentos fictícios.</p>
+          {% endif %}
+          <a href="{% url 'preconsultas:dashboard' %}">Voltar para hoje</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <p class="dashboard-footnote">Protótipo de agenda médica com dados inteiramente fictícios. Casos não prontos não expõem resumo, conversa, anexos ou qualquer conteúdo clínico. A regra de acesso a pré-consultas incompletas permanece pendente.</p>
+  </main>
+</body>
+</html>
+

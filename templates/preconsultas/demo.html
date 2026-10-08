@@ -1,0 +1,327 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Protótipo demonstrativo de pré-consulta médica com dados inteiramente fictícios.">
+  <title>Pré-consulta pronta | Lume Saúde</title>
+  <link rel="icon" href="{% static 'preconsultas/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'preconsultas/demo.css' %}">
+  <script src="{% static 'preconsultas/demo.js' %}" defer></script>
+</head>
+<body
+  data-correction-url="{% url 'preconsultas:correct_item' %}"
+  data-feedback-url="{% url 'preconsultas:add_feedback' %}"
+>
+  <a class="skip-link" href="#resumo">Ir para o resumo</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="{% url 'preconsultas:dashboard' %}" aria-label="Lume Saúde — painel médico">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img"><path d="M16 5v22M5 16h22"/></svg>
+        </span>
+        <span>Lume<span>saúde</span></span>
+      </a>
+      <div class="topbar__meta">
+        <span class="prototype-pill"><span></span> Protótipo — dados fictícios</span>
+        <span class="profile-label">Perfil demonstrativo: <strong>Médico</strong></span>
+        <span class="avatar" aria-hidden="true">HC</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="case-header" aria-labelledby="case-title">
+      <div class="case-header__lead">
+        <div class="eyebrow"><a class="eyebrow-link" href="{% url 'preconsultas:dashboard' %}">Painel médico</a> <span>/</span> Pré-consulta pronta</div>
+        <div class="case-title-row">
+          <div>
+            <h1 id="case-title">{{ consultation.patient.name }}</h1>
+            <p>{{ consultation.patient.age }} anos · Consulta clínica</p>
+          </div>
+          <span class="status-ready"><span aria-hidden="true">✓</span> {{ consultation.get_status_display }}</span>
+        </div>
+      </div>
+      <dl class="case-facts">
+        <div>
+          <dt>Consulta</dt>
+          <dd>{{ consultation.scheduled_for|date:"d \d\e F" }} · {{ consultation.scheduled_for|time:"H:i" }}</dd>
+        </div>
+        <div>
+          <dt>Clínica</dt>
+          <dd>{{ consultation.clinic.name }}</dd>
+        </div>
+        <div>
+          <dt>Médica responsável</dt>
+          <dd>{{ consultation.doctor.name }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    {% if messages %}
+      <div class="server-messages" role="status">
+        {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="workspace">
+      <section class="summary-panel" id="resumo" aria-labelledby="summary-title">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow eyebrow--green">Síntese assistida</span>
+            <h2 id="summary-title">Resumo da pré-consulta</h2>
+          </div>
+          <div class="review-label" title="Conteúdo para revisão humana">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7l8-4z"/><path d="M8.5 12l2.2 2.2 4.8-5"/></svg>
+            Revisão médica necessária
+          </div>
+        </div>
+
+        <div class="legend" aria-label="Legenda de origem das informações">
+          <span><i class="dot dot--patient"></i> Relatado pelo paciente</span>
+          <span><i class="dot dot--ai"></i> Síntese da IA</span>
+          <span><i class="dot dot--doctor"></i> Ajustado pelo médico</span>
+        </div>
+
+        {% for section, items in sections %}
+          <section class="summary-section{% if section == 'Visão geral' %} summary-section--overview{% elif section == 'Informações pendentes ou incertas' %} summary-section--pending{% elif section == 'Pontos para investigação pelo médico' %} summary-section--investigate{% endif %}">
+            <div class="summary-section__title">
+              {% if section == 'Visão geral' %}
+                <span class="section-icon section-icon--spark" aria-hidden="true">✦</span>
+              {% elif section == 'Informações pendentes ou incertas' %}
+                <span class="section-icon section-icon--pending" aria-hidden="true">?</span>
+              {% elif section == 'Pontos para investigação pelo médico' %}
+                <span class="section-icon section-icon--investigate" aria-hidden="true">↗</span>
+              {% endif %}
+              <h3>{{ section }}</h3>
+            </div>
+            <div class="summary-items">
+              {% for item in items %}
+                <article class="summary-item" data-summary-item="{{ item.id }}">
+                  <div class="summary-item__content">
+                    <div class="summary-item__label-row">
+                      <h4>{{ item.label }}</h4>
+                      <span class="source-type source-type--{% if item.was_adjusted %}doctor{% else %}{{ item.attribution }}{% endif %}">
+                        {% if item.was_adjusted %}Ajustado pelo médico{% else %}{{ item.get_attribution_display }}{% endif %}
+                      </span>
+                    </div>
+                    <p class="summary-item__value">{{ item.presented_value }}</p>
+                  </div>
+                  <div class="summary-item__actions">
+                    {% with first_source=item.sources.all|first %}
+                      <button class="text-button js-view-source" type="button" data-source="{{ first_source.source_key }}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.7"/></svg>
+                        Ver origem{% if item.sources.count > 1 %} · {{ item.sources.count }}{% endif %}
+                      </button>
+                    {% endwith %}
+                    <button class="icon-button js-open-correction" type="button" aria-label="Corrigir {{ item.label }}" data-item-id="{{ item.id }}" data-item-label="{{ item.label }}" data-current-value="{{ item.presented_value }}">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4zM13.5 6.5l4 4"/></svg>
+                    </button>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
+        {% endfor %}
+
+        <div class="clinical-guardrail">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7.2v.2"/></svg>
+          <p><strong>Apoio à consulta, não decisão clínica.</strong> Esta síntese organiza apenas conteúdo fictício relatado na demonstração e não contém diagnóstico, prescrição ou recomendação de tratamento.</p>
+        </div>
+      </section>
+
+      <aside class="context-panel" aria-labelledby="context-title">
+        <div class="context-panel__heading">
+          <div>
+            <span class="eyebrow">Fontes do resumo</span>
+            <h2 id="context-title">Conversa e anexos</h2>
+          </div>
+          <span class="source-count">{{ timeline|length }} itens</span>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Fontes da pré-consulta">
+          <button id="tab-conversation" class="tab is-active" type="button" role="tab" aria-selected="true" aria-controls="panel-conversation" data-tab="conversation">
+            Conversa
+          </button>
+          <button id="tab-attachments" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-attachments" data-tab="attachments">
+            Anexos <span>{{ attachments|length }}</span>
+          </button>
+        </div>
+
+        <div id="panel-conversation" class="tab-panel conversation" role="tabpanel" aria-labelledby="tab-conversation">
+          <div class="timeline">
+            {% for source in timeline %}
+              <article id="source-{{ source.source_key }}" class="message message--{{ source.author }} message--{{ source.kind }}" data-source-item="{{ source.source_key }}" tabindex="-1">
+                <div class="message__meta">
+                  <span class="message__avatar" aria-hidden="true">{% if source.author == 'patient' %}MA{% else %}✦{% endif %}</span>
+                  <span class="message__author">{{ source.get_author_display }}</span>
+                  <time datetime="{{ source.sent_at|date:'c' }}">{{ source.sent_at|time:"H:i" }}</time>
+                </div>
+                <div class="message__bubble">
+                  {% if source.kind == 'pdf' %}
+                    <button class="attachment-card js-open-attachment" type="button" data-source-key="{{ source.source_key }}" data-status-url="{% url 'preconsultas:attachment_status' source.source_key %}">
+                      <span class="file-icon" aria-hidden="true">PDF</span>
+                      <span><strong>{{ source.filename }}</strong><small>{{ source.description }}</small></span>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                    <p>{{ source.body }}</p>
+                  {% elif source.kind == 'audio' %}
+                    <div class="audio-card">
+                      <div class="audio-card__top">
+                        <span class="audio-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 7l8 5-8 5V7z"/></svg></span>
+                        <div><strong>Mensagem de áudio</strong><span>00:47 · {{ source.description }}</span></div>
+                      </div>
+                      <audio controls preload="metadata" {% if not source.media_state.available %}data-unavailable="true"{% endif %}>
+                        {% if source.media_state.available %}<source src="{{ source.media_state.url }}" type="audio/mpeg">{% endif %}
+                        Seu navegador não oferece suporte ao player de áudio.
+                      </audio>
+                      {% if not source.media_state.available %}<p class="media-note">MP3 ainda não fornecido — player demonstrativo.</p>{% endif %}
+                      <details>
+                        <summary>Ver transcrição fictícia</summary>
+                        <p>{{ source.demo_transcript }}</p>
+                      </details>
+                    </div>
+                  {% else %}
+                    <p>{{ source.body }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="panel-attachments" class="tab-panel attachment-list" role="tabpanel" aria-labelledby="tab-attachments" hidden>
+          <p class="attachment-list__intro">Documentos referenciados pela paciente. Nenhum arquivo ausente foi analisado.</p>
+          {% for attachment in attachments %}
+            <button class="attachment-list__item js-open-attachment" type="button" data-source-key="{{ attachment.source_key }}" data-status-url="{% url 'preconsultas:attachment_status' attachment.source_key %}">
+              <span class="file-icon" aria-hidden="true">PDF</span>
+              <span><strong>{{ attachment.filename }}</strong><small>{{ attachment.description }}</small></span>
+              <span class="file-status {% if attachment.media_state.available %}file-status--available{% endif %}">{% if attachment.media_state.available %}Disponível{% else %}Aguardando arquivo{% endif %}</span>
+            </button>
+          {% endfor %}
+        </div>
+      </aside>
+    </div>
+
+    <section class="doctor-area" aria-labelledby="doctor-area-title">
+      <div class="doctor-area__heading">
+        <div>
+          <span class="eyebrow eyebrow--green">Revisão humana</span>
+          <h2 id="doctor-area-title">Apontamentos e feedback</h2>
+          <p>Registre observações demonstrativas sem alterar as fontes originais.</p>
+        </div>
+        <span class="saved-locally"><span></span> Salvo localmente no SQLite</span>
+      </div>
+
+      <div class="doctor-grid">
+        <form class="note-card js-async-form" action="{% url 'preconsultas:add_note' %}" method="post">
+          {% csrf_token %}
+          <label for="id_text">Apontamento ou complemento</label>
+          {{ note_form.text }}
+          <div class="form-footer">
+            <span>Somente para esta demonstração</span>
+            <button class="primary-button" type="submit">Salvar apontamento</button>
+          </div>
+        </form>
+
+        <div class="feedback-card">
+          <span class="field-label">Qualidade geral do resumo</span>
+          <p>Esse conjunto de informações ajudaria a preparar a consulta?</p>
+          <div class="feedback-buttons" role="group" aria-label="Feedback do resumo">
+            <button type="button" class="feedback-button js-feedback" data-kind="useful"><span aria-hidden="true">↑</span> Útil</button>
+            <button type="button" class="feedback-button js-feedback" data-kind="irrelevant"><span aria-hidden="true">−</span> Irrelevante</button>
+            <button type="button" class="feedback-button js-feedback js-feedback-correct" data-kind="correct"><span aria-hidden="true">✎</span> Corrigir</button>
+            <button type="button" class="feedback-button js-feedback js-feedback-remove" data-kind="remove"><span aria-hidden="true">×</span> Remover da visualização</button>
+          </div>
+          <p class="feedback-help">Para corrigir ou remover um item específico, use o ícone de edição ao lado dele no resumo.</p>
+        </div>
+      </div>
+
+      {% if recent_notes or recent_corrections %}
+        <div class="activity-log">
+          <h3>Atividade demonstrativa recente</h3>
+          <div class="activity-log__items">
+            {% for correction in recent_corrections %}
+              <span><strong>{{ correction.get_action_display }}:</strong> {{ correction.summary_item.label }}</span>
+            {% endfor %}
+            {% for note in recent_notes %}
+              <span><strong>Apontamento:</strong> {{ note.text|truncatechars:80 }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <p class="policy-note">Regra de liberação de pré-consultas incompletas: pendente de definição. Casos incompletos não são liberados automaticamente ao médico neste protótipo.</p>
+  </main>
+
+  <div class="drawer-backdrop" data-drawer-close hidden></div>
+  <aside class="attachment-drawer" aria-labelledby="drawer-title" aria-hidden="true">
+    <div class="attachment-drawer__header">
+      <div>
+        <span class="eyebrow">Visualização interna</span>
+        <h2 id="drawer-title">Documento</h2>
+      </div>
+      <button class="drawer-close" type="button" data-drawer-close aria-label="Fechar visualização">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="attachment-drawer__body">
+      <div class="viewer-loading" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Preparando visualização…</p>
+      </div>
+      <div class="viewer-empty" hidden>
+        <span class="empty-file" aria-hidden="true">PDF</span>
+        <h3>Arquivo ainda não disponível</h3>
+        <p class="viewer-message">A referência foi preservada, mas nenhum conteúdo foi processado.</p>
+        <small class="viewer-filename"></small>
+      </div>
+      <iframe class="pdf-viewer" title="Visualização do PDF" hidden></iframe>
+    </div>
+    <div class="attachment-drawer__footer">
+      <button class="secondary-button" type="button" data-drawer-close>← Voltar para a pré-consulta</button>
+    </div>
+  </aside>
+
+  <dialog class="correction-dialog" aria-labelledby="correction-title">
+    <form class="correction-form" method="dialog">
+      {% csrf_token %}
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow eyebrow--green">Correção demonstrativa</span>
+          <h2 id="correction-title">Ajustar informação</h2>
+        </div>
+        <button class="dialog-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <input type="hidden" name="summary_item_id">
+      <input type="hidden" name="action" value="update">
+      <div class="comparison">
+        <div>
+          <span>Valor anterior</span>
+          <p class="comparison__old"></p>
+        </div>
+        <label>
+          <span>Novo valor</span>
+          <textarea name="new_value" rows="4" maxlength="1500" required></textarea>
+        </label>
+      </div>
+      <p class="dialog-note">A correção será registrada separadamente. A mensagem ou o anexo de origem não será alterado.</p>
+      <div class="dialog-actions">
+        <button class="danger-link js-hide-item" type="button">Remover da visualização</button>
+        <div>
+          <button class="secondary-button dialog-cancel" type="button">Cancelar</button>
+          <button class="primary-button" type="submit">Salvar correção</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span class="toast__icon" aria-hidden="true">✓</span>
+    <p></p>
+  </div>
+</body>
+</html>
