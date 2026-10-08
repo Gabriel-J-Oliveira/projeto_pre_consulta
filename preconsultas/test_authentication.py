@@ -55,6 +55,39 @@ class AuthenticationTests(TestCase):
         self.assertTemplateUsed(login_page, "preconsultas/login.html")
         self.assertContains(login_page, "Acesso restrito a médicos, recepção e administração")
 
+    def test_admin_requires_an_active_staff_user_or_superuser(self):
+        staff_user = get_user_model().objects.create_user(
+            username="equipe-admin-teste",
+            password=self.password,
+            is_staff=True,
+        )
+        inactive_staff_user = get_user_model().objects.create_user(
+            username="equipe-inativa-teste",
+            password=self.password,
+            is_staff=True,
+            is_active=False,
+        )
+        superuser = get_user_model().objects.create_superuser(
+            username="superusuario-teste",
+            password=self.password,
+        )
+
+        for user in (self.user, inactive_staff_user):
+            with self.subTest(denied_user=user.username):
+                client = Client()
+                client.force_login(user)
+                self.assertRedirects(
+                    client.get("/admin/"),
+                    "/admin/login/?next=/admin/",
+                    fetch_redirect_response=False,
+                )
+
+        for user in (staff_user, superuser):
+            with self.subTest(allowed_user=user.username):
+                client = Client()
+                client.force_login(user)
+                self.assertEqual(client.get("/admin/").status_code, 200)
+
     def test_valid_login_returns_to_requested_internal_page(self):
         destination = reverse("preconsultas:dashboard")
         response = self.client.post(
@@ -86,6 +119,11 @@ class AuthenticationTests(TestCase):
 
     def test_invalid_credentials_use_the_same_generic_error(self):
         login_url = reverse("accounts:login")
+        inactive_user = get_user_model().objects.create_user(
+            username="usuario-inativo-teste",
+            password=self.password,
+            is_active=False,
+        )
         unknown_user = self.client.post(
             login_url,
             {"username": "usuario-inexistente", "password": self.password},
@@ -94,16 +132,28 @@ class AuthenticationTests(TestCase):
             login_url,
             {"username": self.username, "password": "senha-incorreta"},
         )
+        inactive_account = self.client.post(
+            login_url,
+            {"username": inactive_user.username, "password": self.password},
+        )
 
         expected = ["Não foi possível entrar com as credenciais informadas."]
-        self.assertEqual(list(unknown_user.context["form"].non_field_errors()), expected)
-        self.assertEqual(list(wrong_password.context["form"].non_field_errors()), expected)
+        for response in (unknown_user, wrong_password, inactive_account):
+            with self.subTest(response=response):
+                self.assertEqual(
+                    list(response.context["form"].non_field_errors()),
+                    expected,
+                )
 
     def test_logout_requires_post_and_ends_the_session(self):
         self.client.force_login(self.user)
         logout_url = reverse("accounts:logout")
 
-        self.assertEqual(self.client.get(logout_url).status_code, 405)
+        for method in ("get", "options", "put", "patch", "delete"):
+            with self.subTest(rejected_method=method):
+                self.assertEqual(getattr(self.client, method)(logout_url).status_code, 405)
+                self.assertIn("_auth_user_id", self.client.session)
+
         response = self.client.post(logout_url)
 
         self.assertRedirects(response, reverse("accounts:login"))

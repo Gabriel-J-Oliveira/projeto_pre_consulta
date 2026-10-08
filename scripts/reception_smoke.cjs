@@ -22,6 +22,7 @@ function assert(condition, message) {
   const response = await authenticate(page, receptionUrl);
   assert(response && response.status() === 200, "A tela da recepção não retornou 200.");
   assert(await page.locator("#reception-title").isVisible(), "O título operacional não está visível.");
+  assert(await page.locator(".logout-button").isVisible(), "O botão Sair não está visível no desktop.");
   assert(await page.locator(".reception-row").count() === 6, "A lista inicial não exibiu seis registros.");
   assert((await page.locator("body").innerText()).includes("*****"), "Os telefones não estão mascarados.");
   await page.screenshot({ path: "artifacts/recepcao-desktop.png", fullPage: true });
@@ -64,6 +65,7 @@ function assert(condition, message) {
   await page.goto(receptionUrl, { waitUntil: "networkidle" });
   const firstRow = await page.locator(".reception-row").first().boundingBox();
   assert(firstRow && firstRow.width <= 362, "A lista móvel ultrapassou a largura útil.");
+  assert(await page.locator(".logout-button").isVisible(), "O botão Sair não está visível no mobile.");
   await page.locator(".js-open-form").click();
   await page.waitForTimeout(400);
   const mobileDrawer = await page.locator(".form-drawer").boundingBox();
@@ -87,6 +89,7 @@ function assert(condition, message) {
     patientSearch: true,
     noClinicalLink: true,
     mobileLayout: true,
+    logoutButton: true,
     runtimeErrors,
   }, null, 2));
 })().catch((error) => {

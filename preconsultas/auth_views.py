@@ -34,4 +34,4 @@ class InternalLoginView(LoginView):
 
 
 class InternalLogoutView(LogoutView):
-    http_method_names = ["post", "options"]
+    http_method_names = ["post"]
