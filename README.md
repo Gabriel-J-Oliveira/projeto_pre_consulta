@@ -162,6 +162,15 @@ A recepção reutiliza esses mesmos agendamentos e mostra apenas dados e eventos
 operacionais. Novos cadastros começam como `Não iniciada`, exigem no servidor um
 vínculo médico–clínica cadastrado e não criam fontes, respostas ou resumos clínicos.
 
+No formulário manual, informe somente nome e telefone para identificar o paciente.
+Ao enviar, correspondências por nome completo (Unicode NFKC, espaços normalizados
+e sem distinção de maiúsculas) **e** telefone (somente dígitos) exigem uma escolha:
+reutilizar um dos registros apresentados ou criar um novo. Só aparecem pacientes
+com consultas em clínicas vinculadas à recepção, e o servidor revalida a seleção.
+Sem correspondência, um novo paciente é criado. Não há mesclagem automática,
+unicidade de telefone nem busca por telefone isolado. A transação inclui paciente,
+pré-consulta e eventos operacionais; nenhum convite real é enviado.
+
 ## Regras ainda provisórias
 
 - A antecedência de 24, 48 ou 72 horas é apenas demonstrativa.

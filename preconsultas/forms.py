@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from datetime import datetime
 from uuid import uuid4
 
@@ -75,6 +76,11 @@ class ReceptionPreconsultationForm(forms.Form):
             }
         ),
     )
+    patient_choice = forms.ChoiceField(
+        label="Cadastro do paciente", required=False,
+        choices=[("", "Selecione uma opção"), ("new", "Criar novo registro")],
+        help_text="Nome completo e telefone coincidem. Escolha explicitamente; nenhum cadastro será mesclado.",
+    )
     doctor = forms.ModelChoiceField(
         label="Médico",
         queryset=Doctor.objects.none(),
@@ -109,6 +115,17 @@ class ReceptionPreconsultationForm(forms.Form):
     def __init__(self, *args, allowed_clinics=None, **kwargs):
         super().__init__(*args, **kwargs)
         clinics = allowed_clinics if allowed_clinics is not None else Clinic.objects.none()
+        self.allowed_clinics = clinics
+        self.patient_candidates = self.find_patient_candidates(
+            self.data.get("patient_name", ""), self.data.get("phone", "")
+        ) if self.is_bound else []
+        if self.patient_candidates:
+            self.fields["patient_choice"].choices += [
+                (str(patient.pk), f"Reutilizar: {patient.name} · {patient.masked_phone} · registro {patient.pk}")
+                for patient in self.patient_candidates
+            ]
+        else:
+            self.fields["patient_choice"].widget = forms.HiddenInput()
         self.fields["doctor"].queryset = Doctor.objects.filter(clinics__in=clinics).distinct().prefetch_related(
             "clinics"
         ).order_by("name")
@@ -122,10 +139,29 @@ class ReceptionPreconsultationForm(forms.Form):
             )
         return digits
 
+    @staticmethod
+    def normalize_name(value):
+        return " ".join(unicodedata.normalize("NFKC", value).split()).casefold()
+
+    def find_patient_candidates(self, name, phone):
+        name = self.normalize_name(name)
+        phone = re.sub(r"\D", "", phone)
+        if not name or len(phone) not in {10, 11}:
+            return []
+        # Normalize existing records without changing them or adding unique fields.
+        patients = Patient.objects.filter(
+            consultation__clinic__in=self.allowed_clinics
+        ).only("id", "name", "phone").distinct().order_by("pk")
+        return [patient for patient in patients
+                if self.normalize_name(patient.name) == name
+                and re.sub(r"\D", "", patient.phone) == phone]
+
     def clean(self):
         cleaned = super().clean()
         doctor = cleaned.get("doctor")
         clinic = cleaned.get("clinic")
+        if self.patient_candidates and not cleaned.get("patient_choice"):
+            self.add_error("patient_choice", "Escolha reutilizar um paciente ou criar um novo registro.")
         if doctor and clinic and not doctor.clinics.filter(pk=clinic.pk).exists():
             self.add_error(
                 "clinic",
@@ -135,12 +171,23 @@ class ReceptionPreconsultationForm(forms.Form):
 
     @transaction.atomic
     def save(self):
+        if not self.is_valid():
+            raise ValueError("Não é possível salvar um formulário inválido.")
         token = uuid4().hex[:12]
-        patient = Patient.objects.create(
-            name=self.cleaned_data["patient_name"].strip(),
-            phone=self.cleaned_data["phone"],
-            age=None,
-        )
+        choice = self.cleaned_data.get("patient_choice")
+        if choice and choice != "new":
+            # Recheck both the identity match and clinic scope at persistence time.
+            patient = next((patient for patient in self.find_patient_candidates(
+                self.cleaned_data["patient_name"], self.cleaned_data["phone"]
+            ) if str(patient.pk) == choice), None)
+            if patient is None:
+                raise forms.ValidationError("O cadastro selecionado não está mais disponível. Confira os dados.")
+        else:
+            patient = Patient.objects.create(
+                name=self.cleaned_data["patient_name"].strip(),
+                phone=self.cleaned_data["phone"],
+                age=None,
+            )
         scheduled_for = timezone.make_aware(
             datetime.combine(
                 self.cleaned_data["scheduled_date"],

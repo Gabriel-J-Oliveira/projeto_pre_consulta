@@ -5,7 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -200,16 +200,20 @@ def reception_preconsultations(request):
     )
     open_form = request.method == "POST"
     if request.method == "POST" and form.is_valid():
-        consultation = form.save()
-        messages.success(
-            request,
-            "Pré-consulta fictícia cadastrada. Nenhum convite foi enviado.",
-        )
-        consultation_date = timezone.localtime(consultation.scheduled_for).date()
-        return redirect(
-            f"{reverse('recepcao:preconsultations')}?data={consultation_date.isoformat()}"
-            f"&selecionar={consultation.id}&criado=1"
-        )
+        try:
+            consultation = form.save()
+        except ValidationError as error:
+            form.add_error("patient_choice", error)
+        else:
+            messages.success(
+                request,
+                "Pré-consulta fictícia cadastrada. Nenhum convite foi enviado.",
+            )
+            consultation_date = timezone.localtime(consultation.scheduled_for).date()
+            return redirect(
+                f"{reverse('recepcao:preconsultations')}?data={consultation_date.isoformat()}"
+                f"&selecionar={consultation.id}&criado=1"
+            )
 
     selected_date = parse_date(request.GET.get("data", "")) or today
     query = request.GET.get("q", "").strip()[:100]

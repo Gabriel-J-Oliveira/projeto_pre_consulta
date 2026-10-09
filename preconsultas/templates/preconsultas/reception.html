@@ -205,12 +205,18 @@
       <div class="form-prototype-note"><strong>Somente demonstração.</strong> Use dados fictícios; nenhum convite ou tarefa real será criado.</div>
       {% if form.non_field_errors %}<div class="form-error-summary" role="alert">{{ form.non_field_errors }}</div>{% endif %}
       {% for field in form %}
+        {% if field.is_hidden %}
+          {{ field }}
+          {% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+        {% else %}
         <div class="reception-field reception-field--{{ field.name }}{% if field.errors %} reception-field--error{% endif %}">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
+          {% if field.help_text %}<small class="field-help">{{ field.help_text }}</small>{% endif %}
           {% if field.name == 'contact_lead_hours' %}<small class="field-help">Valor provisório para apresentação; a regra definitiva está pendente.</small>{% endif %}
           {% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
         </div>
+        {% endif %}
       {% endfor %}
       <div class="reception-form__actions">
         <button type="button" class="secondary-button" data-close-drawer>Cancelar</button>

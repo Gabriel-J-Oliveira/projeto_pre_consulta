@@ -282,6 +282,7 @@
 .reception-field--error input, .reception-field--error select { border-color: #d98b80; background: #fffafa; }
 .field-error { display: block; margin-top: 5px; color: #a34f44; font-size: 8.5px; line-height: 1.4; }
 .field-help { display: block; margin-top: 5px; color: #89999b; font-size: 8px; line-height: 1.4; }
+.reception-field--patient_choice { grid-column: 1 / -1; }
 .reception-form__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 7px; padding-top: 16px; border-top: 1px solid #e7eded; }
 
 @media (max-width: 1220px) {
