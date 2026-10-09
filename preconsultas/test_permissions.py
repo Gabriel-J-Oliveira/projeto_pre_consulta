@@ -77,7 +77,9 @@ class PermissionTests(TestCase):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(b"".join(response.streaming_content), content)
-                response.close()
+                # The test client closes the response when the iterator ends.
+                # Closing it again emits request_finished outside its DB guard.
+                self.assertTrue(response.closed)
                 for user, expected in (
                     (self.other_user, 404), (self.reception_user, 403), (self.admin, 403),
                 ):
