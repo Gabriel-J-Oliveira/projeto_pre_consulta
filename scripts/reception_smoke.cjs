@@ -1,7 +1,7 @@
 const { chromium } = require("playwright");
 const { authenticate } = require("./smoke_auth.cjs");
 
-const receptionUrl = "http://127.0.0.1:8000/recepcao/pre-consultas/";
+const receptionUrl = (process.env.SMOKE_BASE_URL || "http://127.0.0.1:8000") + "/recepcao/pre-consultas/";
 const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 let activeBrowser;
 

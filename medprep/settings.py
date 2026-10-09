@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
+from .database import database_from_env
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts",
     "preconsultas",
 ]
 
@@ -73,12 +75,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "medprep.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": database_from_env(BASE_DIR)}
 
 AUTH_PASSWORD_VALIDATORS = []
 LANGUAGE_CODE = "pt-br"
@@ -93,6 +90,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "preconsultas:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
+
+# Cookie names are distinct when running this worktree beside the auth prototype.
+SESSION_COOKIE_NAME = os.getenv("DJANGO_SESSION_COOKIE_NAME", "sessionid")
+CSRF_COOKIE_NAME = os.getenv("DJANGO_CSRF_COOKIE_NAME", "csrftoken")
 
 media_root_value = os.getenv("DEMO_MEDIA_ROOT", "demo_media")
 DEMO_MEDIA_ROOT = (BASE_DIR / media_root_value).resolve()

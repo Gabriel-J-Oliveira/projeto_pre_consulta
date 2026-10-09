@@ -5,7 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -14,6 +14,7 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .demo_media import DEMO_MEDIA_FILES
+from .permissions import doctor_for, doctor_consultations, reception_clinics
 from .forms import (
     CorrectionForm,
     DoctorNoteForm,
@@ -32,7 +33,6 @@ from .models import (
 
 
 DEMO_SLUG = "demo-pronta"
-DEMO_DOCTOR_REGISTRATION = "CRM-SP 000000 (fictício)"
 
 STATUS_PRESENTATION = {
     Consultation.STATUS_READY: {
@@ -75,7 +75,10 @@ def _decorate_appointment(consultation, today=None):
     consultation.status_help = presentation["help"]
     consultation.can_open = (
         consultation.status == Consultation.STATUS_READY
-        and consultation.slug == DEMO_SLUG
+    )
+    consultation.detail_url = (
+        reverse("preconsultas:demo") if consultation.slug == DEMO_SLUG
+        else reverse("preconsultas:detail", args=[consultation.slug])
     )
     return consultation
 
@@ -90,11 +93,13 @@ def _decorate_operational_events(consultation):
     return consultation
 
 
-def _consultation():
+def _consultation(request, slug=DEMO_SLUG):
     consultation = get_object_or_404(
-        Consultation.objects.select_related("patient", "doctor", "clinic"),
-        slug=DEMO_SLUG,
+        doctor_consultations(request.user).select_related("patient", "doctor", "clinic"),
+        slug=slug,
     )
+    if consultation.status != Consultation.STATUS_READY:
+        raise PermissionDenied
     consultation.scheduled_for = _effective_scheduled_for(consultation)
     return consultation
 
@@ -102,21 +107,19 @@ def _consultation():
 @login_required
 @require_GET
 def dashboard(request):
+    doctor = doctor_for(request.user)
     today = timezone.localdate()
     selected_date = parse_date(request.GET.get("data", "")) or today
     query = request.GET.get("q", "").strip()[:100]
     clinic_value = request.GET.get("clinica", "").strip()
 
     appointments = list(
-        Consultation.objects.filter(
-            doctor__display_registration=DEMO_DOCTOR_REGISTRATION
-        ).select_related("patient", "doctor", "clinic")
+        doctor_consultations(request.user).select_related("patient", "doctor", "clinic")
     )
     for appointment in appointments:
         _decorate_appointment(appointment, today)
     appointments.sort(key=lambda item: item.display_scheduled_for)
 
-    doctor = appointments[0].doctor if appointments else None
     clinics = sorted(
         {appointment.clinic for appointment in appointments},
         key=lambda clinic: clinic.name,
@@ -184,9 +187,11 @@ def dashboard(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def reception_preconsultations(request):
+    allowed_clinics = reception_clinics(request.user)
     today = timezone.localdate()
     form = ReceptionPreconsultationForm(
         request.POST if request.method == "POST" else None,
+        allowed_clinics=allowed_clinics,
         initial={
             "scheduled_date": today,
             "scheduled_time": "09:00",
@@ -212,22 +217,20 @@ def reception_preconsultations(request):
     clinic_value = request.GET.get("clinica", "").strip()
     status_value = request.GET.get("estado", "").strip()
 
-    doctors = list(Doctor.objects.prefetch_related("clinics").order_by("name"))
-    clinics = list(Clinic.objects.order_by("name"))
+    doctors = list(Doctor.objects.filter(clinics__in=allowed_clinics).distinct().prefetch_related("clinics").order_by("name"))
+    clinics = list(allowed_clinics.order_by("name"))
     allowed_doctors = {str(doctor.id) for doctor in doctors}
-    allowed_clinics = {str(clinic.id) for clinic in clinics}
+    allowed_clinic_ids = {str(clinic.id) for clinic in clinics}
     allowed_statuses = {value for value, _ in Consultation.STATUS_CHOICES}
     if doctor_value not in allowed_doctors:
         doctor_value = ""
-    if clinic_value not in allowed_clinics:
+    if clinic_value not in allowed_clinic_ids:
         clinic_value = ""
     if status_value not in allowed_statuses:
         status_value = ""
 
     appointments = list(
-        Consultation.objects.filter(
-            Q(slug__startswith="demo-") | Q(slug__startswith="recepcao-")
-        )
+        Consultation.objects.filter(clinic__in=allowed_clinics)
         .select_related("patient", "doctor", "clinic")
         .prefetch_related("operational_events")
     )
@@ -277,7 +280,7 @@ def reception_preconsultations(request):
         )
 
     doctor_clinic_map = {
-        str(doctor.id): [clinic.id for clinic in doctor.clinics.all()]
+        str(doctor.id): [clinic.id for clinic in doctor.clinics.all() if str(clinic.id) in allowed_clinic_ids]
         for doctor in doctors
     }
     has_filters = bool(query or doctor_value or clinic_value or status_value)
@@ -335,8 +338,8 @@ def _media_state(source):
 
 @login_required
 @require_GET
-def demo(request):
-    consultation = _consultation()
+def demo(request, slug=DEMO_SLUG):
+    consultation = _consultation(request, slug)
     items = list(
         consultation.summary_items.prefetch_related("sources", "corrections").all()
     )
@@ -362,6 +365,9 @@ def demo(request):
         "preconsultas/demo.html",
         {
             "consultation": consultation,
+            "note_url": reverse("preconsultas:add_note") if slug == DEMO_SLUG else reverse("preconsultas:detail_note", args=[slug]),
+            "correction_url": reverse("preconsultas:correct_item") if slug == DEMO_SLUG else reverse("preconsultas:detail_correction", args=[slug]),
+            "feedback_url": reverse("preconsultas:add_feedback") if slug == DEMO_SLUG else reverse("preconsultas:detail_feedback", args=[slug]),
             "sections": sections.items(),
             "timeline": timeline,
             "attachments": attachments,
@@ -383,8 +389,8 @@ def _form_error(form):
 
 @login_required
 @require_POST
-def add_note(request):
-    consultation = _consultation()
+def add_note(request, slug=DEMO_SLUG):
+    consultation = _consultation(request, slug)
     form = DoctorNoteForm(request.POST)
     if not form.is_valid():
         return _form_error(form)
@@ -394,13 +400,13 @@ def add_note(request):
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"ok": True, "message": "Apontamento salvo na demonstração."})
     messages.success(request, "Apontamento salvo na demonstração.")
-    return redirect("preconsultas:demo")
+    return redirect("preconsultas:demo") if slug == DEMO_SLUG else redirect("preconsultas:detail", slug=slug)
 
 
 @login_required
 @require_POST
-def correct_item(request):
-    consultation = _consultation()
+def correct_item(request, slug=DEMO_SLUG):
+    consultation = _consultation(request, slug)
     form = CorrectionForm(request.POST)
     if not form.is_valid():
         return _form_error(form)
@@ -435,8 +441,8 @@ def correct_item(request):
 
 @login_required
 @require_POST
-def add_feedback(request):
-    consultation = _consultation()
+def add_feedback(request, slug=DEMO_SLUG):
+    consultation = _consultation(request, slug)
     form = FeedbackForm(request.POST)
     if not form.is_valid():
         return _form_error(form)
@@ -462,7 +468,7 @@ def add_feedback(request):
 def attachment_status(request, source_key):
     source = get_object_or_404(
         SourceItem,
-        consultation__slug=DEMO_SLUG,
+        consultation__in=doctor_consultations(request.user).filter(status=Consultation.STATUS_READY),
         source_key=source_key,
         kind__in=[SourceItem.KIND_PDF, SourceItem.KIND_AUDIO],
     )
@@ -484,7 +490,7 @@ def attachment_status(request, source_key):
 def attachment_content(request, source_key):
     source = get_object_or_404(
         SourceItem,
-        consultation__slug=DEMO_SLUG,
+        consultation__in=doctor_consultations(request.user).filter(status=Consultation.STATUS_READY),
         source_key=source_key,
         kind__in=[SourceItem.KIND_PDF, SourceItem.KIND_AUDIO],
     )

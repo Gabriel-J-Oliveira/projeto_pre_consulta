@@ -37,5 +37,6 @@ demonstração devem permanecer claramente fictícios. Se houver dúvida sobre a
 de um arquivo ou dado, não o inclua no commit e registre a questão no PR.
 
 Cada desenvolvedor deve criar seu próprio `.env` a partir de `.env.example` e seu
-próprio banco SQLite local. Uma eventual troca de banco ou de tecnologia depende de
-decisão explícita da equipe e não faz parte do fluxo normal de contribuição.
+próprio banco PostgreSQL local conforme o README. SQLite é uma opção explícita
+para quem não dispõe de PostgreSQL. Não compartilhe bancos ou credenciais.
+Mudanças futuras de tecnologia dependem de decisão da equipe.

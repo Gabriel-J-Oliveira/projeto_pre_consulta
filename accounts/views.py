@@ -1,5 +1,10 @@
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.exceptions import PermissionDenied
+from django.urls import reverse
+
+from preconsultas.permissions import default_login_destination
 
 
 class InternalAuthenticationForm(AuthenticationForm):
@@ -28,9 +33,21 @@ class InternalAuthenticationForm(AuthenticationForm):
 
 
 class InternalLoginView(LoginView):
-    template_name = "preconsultas/login.html"
+    template_name = "accounts/login.html"
     authentication_form = InternalAuthenticationForm
     redirect_authenticated_user = True
+
+    def dispatch(self, request, *args, **kwargs):
+        if (
+            request.path == reverse("admin-login")
+            and request.user.is_authenticated
+            and not admin.site.has_permission(request)
+        ):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_default_redirect_url(self):
+        return reverse(default_login_destination(self.request.user))
 
 
 class InternalLogoutView(LogoutView):

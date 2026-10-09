@@ -21,4 +21,8 @@ urlpatterns = [
         views.attachment_content,
         name="attachment_content",
     ),
+    path("pre-consultas/<slug:slug>/", views.demo, name="detail"),
+    path("pre-consultas/<slug:slug>/apontamentos/", views.add_note, name="detail_note"),
+    path("pre-consultas/<slug:slug>/correcoes/", views.correct_item, name="detail_correction"),
+    path("pre-consultas/<slug:slug>/feedback/", views.add_feedback, name="detail_feedback"),
 ]

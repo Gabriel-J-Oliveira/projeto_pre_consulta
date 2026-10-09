@@ -106,12 +106,13 @@ class ReceptionPreconsultationForm(forms.Form):
         initial=48,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, allowed_clinics=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["doctor"].queryset = Doctor.objects.prefetch_related(
+        clinics = allowed_clinics if allowed_clinics is not None else Clinic.objects.none()
+        self.fields["doctor"].queryset = Doctor.objects.filter(clinics__in=clinics).distinct().prefetch_related(
             "clinics"
         ).order_by("name")
-        self.fields["clinic"].queryset = Clinic.objects.order_by("name")
+        self.fields["clinic"].queryset = clinics.order_by("name")
 
     def clean_phone(self):
         digits = re.sub(r"\D", "", self.cleaned_data["phone"])

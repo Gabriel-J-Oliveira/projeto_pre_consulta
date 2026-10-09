@@ -11,8 +11,8 @@
   <script src="{% static 'preconsultas/demo.js' %}" defer></script>
 </head>
 <body
-  data-correction-url="{% url 'preconsultas:correct_item' %}"
-  data-feedback-url="{% url 'preconsultas:add_feedback' %}"
+  data-correction-url="{{ correction_url }}"
+  data-feedback-url="{{ feedback_url }}"
 >
   <a class="skip-link" href="#resumo">Ir para o resumo</a>
 
@@ -216,11 +216,11 @@
           <h2 id="doctor-area-title">Apontamentos e feedback</h2>
           <p>Registre observações demonstrativas sem alterar as fontes originais.</p>
         </div>
-        <span class="saved-locally"><span></span> Salvo localmente no SQLite</span>
+        <span class="saved-locally"><span></span> Salvo no banco local</span>
       </div>
 
       <div class="doctor-grid">
-        <form class="note-card js-async-form" action="{% url 'preconsultas:add_note' %}" method="post">
+        <form class="note-card js-async-form" action="{{ note_url }}" method="post">
           {% csrf_token %}
           <label for="id_text">Apontamento ou complemento</label>
           {{ note_form.text }}

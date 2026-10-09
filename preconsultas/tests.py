@@ -18,6 +18,7 @@ from .models import (
     Patient,
     SourceItem,
     SummaryItem,
+    ReceptionProfile,
 )
 
 
@@ -26,6 +27,9 @@ class DemoDataMixin:
     def setUpTestData(cls):
         call_command("load_demo", verbosity=0)
         cls.user = get_user_model().objects.create_user(username="usuario-interno-teste")
+        doctor = Doctor.objects.get(display_registration="CRM-SP 000000 (fictício)")
+        doctor.user = cls.user
+        doctor.save(update_fields=["user"])
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -284,6 +288,13 @@ class DoctorDashboardTests(DemoDataMixin, TestCase):
 
 
 class ReceptionPreconsultationTests(DemoDataMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        Doctor.objects.filter(user=cls.user).update(user=None)
+        profile = ReceptionProfile.objects.create(user=cls.user)
+        profile.clinics.set(Clinic.objects.all())
+
     def valid_payload(self, **overrides):
         doctor = Doctor.objects.get(display_registration="CRM-SP 000000 (fictício)")
         clinic = Clinic.objects.get(name="Clínica Horizonte — Unidade Jardins")

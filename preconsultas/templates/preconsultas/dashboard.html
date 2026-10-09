@@ -37,7 +37,7 @@
   <main class="dashboard-main">
     <section class="dashboard-intro" aria-labelledby="dashboard-title">
       <div>
-        <span class="eyebrow eyebrow--green">{{ greeting }}, Dra. Helena</span>
+        <span class="eyebrow eyebrow--green">{{ greeting }}, {{ doctor.name }}</span>
         <h1 id="dashboard-title">Sua agenda</h1>
         <p>Veja seus atendimentos e acompanhe o preparo de cada pré-consulta.</p>
       </div>
@@ -75,7 +75,7 @@
             </div>
             <div class="next-card__action">
               {% if next_appointment.can_open %}
-                <a class="open-button" href="{% url 'preconsultas:demo' %}">
+                <a class="open-button" href="{{ next_appointment.detail_url }}">
                   Abrir pré-consulta
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
@@ -185,7 +185,7 @@
                 </div>
                 <div class="appointment-action" role="cell">
                   {% if appointment.can_open and not appointment.is_next %}
-                    <a href="{% url 'preconsultas:demo' %}" aria-label="Abrir pré-consulta de {{ appointment.patient.name }}">
+                    <a href="{{ appointment.detail_url }}" aria-label="Abrir pré-consulta de {{ appointment.patient.name }}">
                       Abrir pré-consulta
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>

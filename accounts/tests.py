@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from preconsultas.models import Clinic, Doctor
 
 
 class AuthenticationTests(TestCase):
@@ -13,6 +14,11 @@ class AuthenticationTests(TestCase):
             username=cls.username,
             password=cls.password,
         )
+        doctor = Doctor.objects.create(
+            name="Médico fictício de teste", display_registration="Registro fictício",
+            user=cls.user,
+        )
+        doctor.clinics.add(Clinic.objects.create(name="Clínica fictícia de teste"))
 
     def test_internal_routes_redirect_anonymous_users_to_login(self):
         protected_routes = [
@@ -52,7 +58,7 @@ class AuthenticationTests(TestCase):
 
         login_page = self.client.get("/admin/login/?next=/admin/")
         self.assertEqual(login_page.status_code, 200)
-        self.assertTemplateUsed(login_page, "preconsultas/login.html")
+        self.assertTemplateUsed(login_page, "accounts/login.html")
         self.assertContains(login_page, "Acesso restrito a médicos, recepção e administração")
 
     def test_admin_requires_an_active_staff_user_or_superuser(self):

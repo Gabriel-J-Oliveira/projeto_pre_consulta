@@ -2,7 +2,6 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -14,11 +13,31 @@ jobs:
     name: Django checks and tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: preconsulta_ci
+          POSTGRES_USER: preconsulta_ci
+          POSTGRES_PASSWORD: ci-only-disposable-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U preconsulta_ci -d preconsulta_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DJANGO_SECRET_KEY: ci-placeholder-not-for-production
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost
       DEMO_MEDIA_ROOT: demo_media
+      DB_BACKEND: postgresql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: preconsulta_ci
+      DB_USER: preconsulta_ci
+      DB_PASSWORD: ci-only-disposable-password
 
     steps:
       - name: Checkout
@@ -38,6 +57,14 @@ jobs:
 
       - name: Check migrations
         run: python manage.py makemigrations --check --dry-run
+
+      - name: Apply migrations
+        run: python manage.py migrate --noinput
+
+      - name: Load fictitious demo twice
+        run: |
+          python manage.py load_demo
+          python manage.py load_demo
 
       - name: Run tests
         run: python manage.py test
