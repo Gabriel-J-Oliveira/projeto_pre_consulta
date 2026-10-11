@@ -208,25 +208,29 @@ PostgreSQL não foi validado localmente nas etapas anteriores.
 Equipe de dois desenvolvedores, branches curtas por tarefa e revisão entre eles;
 sem branches permanentes por pessoa. Não usar force push nem contornar proteção.
 Este repositório foi iniciado vazio para receber o protótipo existente, mantendo
-o código validado, mas sem copiar o histórico Git, bancos ou arquivos locais.
+o código validado, sem copiar bancos ou arquivos locais. O histórico Git foi
+preservado posteriormente, junto às branches e registros das etapas antigas.
 A origem técnica foi o snapshot `5474f4f` da antiga branch
 `feature/preconsultation-state-engine`; não é uma reescrita da aplicação.
 
 Fluxo atual:
 
 ```text
-main (README mínimo de inicialização)
-  ← chore/integrate-existing-project (projeto completo e contexto para planejamento)
+main (projeto completo: autenticação, permissões, pacientes e motor de estados)
+  ← novas branches curtas por card
 ```
 
-As antigas PRs #1–#4 pertencem ao repositório anterior; permanecem intactas e
-não são dependências da integração neste repositório novo. A conta proprietária
-tem permissão de escrita aqui. Todos os módulos desenvolvidos anteriormente,
-incluindo cadastro de pacientes e motor de estados, fazem parte desta integração.
-Não considerar a branch integrada a `main` sem conferir o estado da nova PR.
+As antigas PRs #1–#4 permanecem intactas no repositório anterior, sem bloquear
+este repositório. A nova PR #1 foi mesclada em `main`, reunindo todos os módulos.
+As novas PRs #2–#6 são registros históricos fechados sem merge, não entregas
+pendentes nem aprovações transferidas. As branches antigas preservam seus SHAs;
+a antiga `main` está em `archive/previous-main`. Consulte
+`docs/repository-migration.md` para o mapa e o histórico.
 
-Fluxo planejado: revisar a PR de integração para `main`, aguardar a CI real e
-revisão humana. Depois, criar branches curtas por card a partir da base integrada.
+Fluxo planejado: criar branches curtas por card a partir da `main` integrada,
+abrir PRs, aguardar CI real e revisão humana. Proteção/rulesets não estavam
+configurados na nova `main` durante a migração; configurá-los é uma pendência
+para colaboração, não uma regra que tenha sido removida ou contornada.
 Consultar `CONTRIBUTING.md` e a proteção atual; a autorização do solicitante para
 merge não substitui os requisitos de revisão/checks do GitHub.
 

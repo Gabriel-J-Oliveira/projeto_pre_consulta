@@ -7,6 +7,9 @@ Para planejamento em outro chat de IA, use o arquivo autossuficiente
 [Contexto do projeto](docs/planning/README.md), com arquitetura, funcionalidades,
 permissões, estados, cadeia de branches e decisões ainda pendentes.
 
+O código atual está integrado em `main`. O [registro da migração de repositório](docs/repository-migration.md)
+documenta as branches históricas, os commits preservados e a correspondência das PRs.
+
 ## Instalação local
 
 Requisitos: Python 3.14 e PostgreSQL 17 (a versão usada na CI). O driver
