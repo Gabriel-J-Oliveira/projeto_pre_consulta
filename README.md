@@ -3,6 +3,10 @@
 Protótipo Django da tela **Pré-consulta pronta**, destinado exclusivamente a
 apresentações com dados fictícios. Não use este projeto com dados reais de pacientes.
 
+Para planejamento em outro chat de IA, use o arquivo autossuficiente
+[Contexto do projeto](docs/planning/README.md), com arquitetura, funcionalidades,
+permissões, estados, cadeia de branches e decisões ainda pendentes.
+
 ## Instalação local
 
 Requisitos: Python 3.14 e PostgreSQL 17 (a versão usada na CI). O driver
@@ -42,7 +46,7 @@ O domínio não importa views de autenticação. URLs, namespaces, estilo,
 CSRF, mensagens e critérios de autorização permanecem iguais.
 
 Clínicas, médicos e perfis de recepção permanecem em `preconsultas`, preservando
-tabelas, content types, permissões e as migrações `0001` a `0004`.
+tabelas, content types, permissões e o histórico de migrações `0001` a `0005`.
 O usuário padrão de Django não mudou. A extração de autenticação não exige
 nova migração. Agendamento e prontuário ainda não têm apps; serão criados
 quando suas funcionalidades entrarem no escopo. Não há processamento real de IA.
@@ -172,6 +176,12 @@ unicidade de telefone nem busca por telefone isolado. A transação inclui pacie
 pré-consulta e eventos operacionais; nenhum convite real é enviado.
 
 ## Regras ainda provisórias
+
+O [motor de estados operacional](docs/state-engine.md) reutiliza `Consultation.status`
+e registra transições explícitas no serviço de domínio, com auditoria e isolamento.
+É somente uma simulação local: “Concluída” não equivale a “Pronta” nem libera
+conteúdo clínico. A documentação descreve o grafo, compatibilidade e validação
+manual no shell. Não há endpoint ou integração real para mudanças de estado.
 
 - A antecedência de 24, 48 ou 72 horas é apenas demonstrativa.
 - Não há regra definitiva de elegibilidade ou liberação de casos incompletos.

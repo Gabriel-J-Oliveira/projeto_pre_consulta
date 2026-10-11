@@ -58,12 +58,20 @@ class Consultation(models.Model):
     STATUS_NOT_STARTED = "not_started"
     STATUS_INCOMPLETE = "incomplete"
     STATUS_CONSENT_DECLINED = "consent_declined"
+    STATUS_AWAITING_CONSENT = "awaiting_consent"
+    STATUS_AWAITING_PATIENT = "awaiting_patient"
+    STATUS_COMPLETED = "completed"
+    STATUS_CANCELLED = "cancelled"
     STATUS_CHOICES = [
         (STATUS_READY, "Pronta"),
         (STATUS_IN_PROGRESS, "Em andamento"),
         (STATUS_NOT_STARTED, "Não iniciada"),
         (STATUS_INCOMPLETE, "Incompleta"),
         (STATUS_CONSENT_DECLINED, "Consentimento recusado"),
+        (STATUS_AWAITING_CONSENT, "Aguardando consentimento"),
+        (STATUS_AWAITING_PATIENT, "Aguardando confirmação do paciente"),
+        (STATUS_COMPLETED, "Concluída"),
+        (STATUS_CANCELLED, "Cancelada"),
     ]
 
     slug = models.SlugField(unique=True)
@@ -203,6 +211,7 @@ class Feedback(models.Model):
 
 
 class OperationalEvent(models.Model):
+    KIND_STATE_CHANGED = "state_changed"
     KIND_CREATED = "created"
     KIND_INVITE_PLANNED = "invite_planned"
     KIND_INVITE_SIMULATED = "invite_simulated"
@@ -212,6 +221,7 @@ class OperationalEvent(models.Model):
     KIND_INCOMPLETE = "incomplete"
     KIND_CONSENT_DECLINED = "consent_declined"
     KIND_CHOICES = [
+        (KIND_STATE_CHANGED, "Estado operacional alterado"),
         (KIND_CREATED, "Registro criado"),
         (KIND_INVITE_PLANNED, "Convite previsto"),
         (KIND_INVITE_SIMULATED, "Convite demonstrativo"),
@@ -230,6 +240,13 @@ class OperationalEvent(models.Model):
     occurred_at = models.DateTimeField()
     detail = models.CharField(max_length=240)
     is_simulated = models.BooleanField(default=False)
+    previous_status = models.CharField(max_length=20, blank=True)
+    next_status = models.CharField(max_length=20, blank=True)
+    origin = models.CharField(max_length=30, blank=True)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="preconsultation_state_events",
+    )
 
     class Meta:
         ordering = ["occurred_at", "id"]

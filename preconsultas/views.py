@@ -27,6 +27,7 @@ from .models import (
     Correction,
     Doctor,
     Feedback,
+    OperationalEvent,
     SourceItem,
     SummaryItem,
 )
@@ -35,6 +36,18 @@ from .models import (
 DEMO_SLUG = "demo-pronta"
 
 STATUS_PRESENTATION = {
+    Consultation.STATUS_AWAITING_CONSENT: {
+        "css": "not-started", "help": "Aguardando consentimento; sem envio real.",
+    },
+    Consultation.STATUS_AWAITING_PATIENT: {
+        "css": "progress", "help": "Aguardando confirmação do paciente.",
+    },
+    Consultation.STATUS_COMPLETED: {
+        "css": "progress", "help": "Coleta concluída; sem liberação clínica automática.",
+    },
+    Consultation.STATUS_CANCELLED: {
+        "css": "declined", "help": "Fluxo operacional cancelado.",
+    },
     Consultation.STATUS_READY: {
         "css": "ready",
         "help": "Síntese disponível para revisão.",
@@ -88,7 +101,9 @@ def _decorate_operational_events(consultation):
     delta = consultation.display_scheduled_for - stored_appointment
     events = list(consultation.operational_events.all())
     for event in events:
-        event.display_occurred_at = timezone.localtime(event.occurred_at) + delta
+        event.display_occurred_at = timezone.localtime(event.occurred_at)
+        if event.kind != OperationalEvent.KIND_STATE_CHANGED:
+            event.display_occurred_at += delta
     consultation.display_events = events
     return consultation
 
