@@ -164,7 +164,10 @@
                   <time datetime="{{ source.sent_at|date:'c' }}">{{ source.sent_at|time:"H:i" }}</time>
                 </div>
                 <div class="message__bubble">
-                  {% if source.kind == 'pdf' %}
+                  {% if source.inbound_message_id %}
+                    <p>{{ source.body }}</p>
+                    {% if source.filename %}<p><strong>{{ source.filename }}</strong> — referência simulada, sem arquivo processado.</p>{% endif %}
+                  {% elif source.kind == 'pdf' %}
                     <button class="attachment-card js-open-attachment" type="button" data-source-key="{{ source.source_key }}" data-status-url="{% url 'preconsultas:attachment_status' source.source_key %}">
                       <span class="file-icon" aria-hidden="true">PDF</span>
                       <span><strong>{{ source.filename }}</strong><small>{{ source.description }}</small></span>

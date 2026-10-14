@@ -12,6 +12,9 @@ para simulação técnica pré-IA. PR 00/#8 e PR 01 não estão integradas à ma
 Atualização PR 02: branch empilhada `feature/pre-ai-event-ingestion`, base PR #9,
 SHA `fae081e3796a780a0d5878338393585c86b4e6f3`. Ingestão técnica autorizada;
 D05 é proposta restrita ao simulador, não contrato definitivo de canal real.
+Atualização PR 03: D06 aprovada expressamente pelo solicitante em 14/10/2026
+para o recorte técnico fictício do prompt; branch `feature/pre-ai-traceability`
+baseada em PR #10, SHA `76818a0acd49f72bda518ca65ea6e43beb306bc5`. Sem merge.
 Não contém credenciais, dados pessoais, banco local ou documentos de pacientes.
 
 ## 1. Produto e estágio atual
@@ -71,6 +74,8 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
   antecedência demonstrativa, estado e deslocamento de data das fixtures.
 - `SourceItem`: fontes fictícias de mensagem, áudio e PDF; texto/transcrição
   demonstrativa e metadados locais.
+  PR 03 acrescenta tipo imagem e origem de simulação; vínculo OneToOne opcional
+  à mensagem recebida, momento/operador da materialização. Legados continuam nulos.
 - `SummaryItem`: itens estruturados, atribuição e referências às fontes.
 - `DoctorNote`, `Correction`, `Feedback`: interações médicas persistidas.
 - `OperationalEvent`: linha do tempo operacional. Eventos do motor guardam
@@ -81,6 +86,9 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
 - `InboundMessage` (PR 02): entrada privada durável, com namespace/versão/tipo,
   texto OU metadados de mídia, horários declarado/real, operador e evidência
   simulada aplicável. Não é `SourceItem` e não é exposta à recepção ou ao Admin.
+- `SummaryRevision` e `SummaryRevisionSource` (PR 03): snapshots explícitos do
+  item de resumo existente e suas fontes, com revisão, chave lógica, momento e
+  operador da captura. Não geram resumo nem definem payload de resultado da IA.
 
 Migrações `0001`–`0003` preservam o protótipo original; `0004` acrescenta vínculos
 internos; `0005_operational_state_engine` acrescenta metadados opcionais de eventos
@@ -89,6 +97,8 @@ e escolhas de estado. Não há migração de dados que transforme os estados ant
 e tipo de evento, sem backfill de manifestações ou alteração de estados legados.
 `0007_inboundmessage` acrescenta somente tabela e constraints de entrada, sem
 converter fontes/resumos existentes ou criar mensagens para registros históricos.
+`0008_source_provenance_summary_revisions` acrescenta vínculos opcionais às fontes,
+escolhas de imagem/simulação e tabelas de snapshots/referências. Sem backfill.
 
 ## 4. Autenticação e autorização são separadas
 
@@ -332,8 +342,8 @@ Evidências apontam para arquivos revisados na base `1e199b4`:
 | Consentimento versionado | Simulado na branch PR 01; ausente na base auditada | ConsentEvidence/consent.py, referência de versão e evento auditado; não é termo jurídico ou consentimento real |
 | Entrada interna unificada e simulador | Simulada na branch PR 02; ausente na base auditada | ingestion.py/ingestion_simulator.py; entradas duráveis privadas, nenhuma transformação em fontes clínicas |
 | Idempotência de entrada | Implementada para local_simulation na PR 02 | Chave origem/consulta/ID, comparação canônica, row lock PostgreSQL e unicidade; namespace real pendente |
-| Fontes, vínculo item–fonte e correções | Parcial | `SourceItem`, `SummaryItem.sources`, `Correction`; ações preservam original, mas não há imutabilidade/versionamento completo e fixtures são atualizáveis |
-| Resultados estruturados e histórico longitudinal | Ausente como pipeline aprovado | Não há lote/versão de resultado/processamento; não liberar todos os atendimentos só por patient_id |
+| Fontes, vínculo item–fonte e correções | Parcial; proveniência de novas fontes na PR 03 | Fonte materializada aponta para InboundMessage; legados sem vínculo inventado, fixtures atualizáveis. Captura de correções explícita, não pipeline integrado |
+| Resultados estruturados e histórico longitudinal | Snapshots/histórico restrito na PR 03; pipeline IA ausente | SummaryRevision captura estrutura atual, não schema de IA. Histórico somente ready do médico atribuído/clínica; patient_id não amplia escopo |
 | Mídias privadas | Parcial/demonstrativo | Mapeamento local + FileResponse autorizado, teste de bytes fictícios; sem upload, retenção ou storage privado provisionado |
 | Orquestrador/contratos/FakeAIProvider | Ausente | Não há camada de provedor ou processamento/retentativa; começar com contrato/fake depois da persistência |
 | Revisão médica | Parcial | Views/templates de notas/correções/feedback existem; sem ator registrado nesses modelos, versionamento de saída/publicação ou controle completo de concorrência |
@@ -373,7 +383,8 @@ e deploy conforme impacto, registrar SEMPRE resultado/próximo passo no ROADMAP 
 manter o README da raiz como navegação. Não manter guias operacionais conflitantes
 nem declarar conclusão/CI por configuração ou intenção. Publicação da PR 01
 empilhada foi autorizada; a execução atual autoriza também PR 02 empilhada,
-mas não merge nem implementação da PR 03.
+sem merge. Posteriormente, D06 e a implementação/publicação da PR 03 empilhada foram
+autorizadas expressamente; merge e PR 04 não estão autorizados nesta execução.
 
 ## 16. Contrato de ingestão PR 02 — D05 restrita à simulação
 
@@ -453,4 +464,71 @@ usuários, consentimento ou consultas automaticamente; testes fazem setup explí
 Pendências para canais reais: autenticação/origem, namespace por conta/integrador,
 limites/mídias, semântica de ordem/reentrega após encerramento, identidade e
 retenção. Proteção de métodos de instância não é WORM; SQL/QuerySet privilegiados
-podem alterar dados. PR 03 deve definir D06 antes de transformar entradas em fontes.
+podem alterar dados. D06 foi aprovada para o recorte simulado da seção 17;
+isso não aprova contratos ou retenção de canais reais.
+
+## 17. Proveniência e revisões PR 03 — D06 técnica aprovada
+
+Escopo fictício aprovado pelo solicitante em 14/10/2026: materialização, associação
+entrada–fonte, snapshots da estrutura atual e histórico restrito. Sem IA,
+publicação clínica, prontuário, transporte ou armazenamento externo. D08 mantém
+retenção/infra produtivas pendentes; D07 define contrato final da IA na PR 04.
+
+Interfaces internas de `preconsultas.traceability`:
+
+- `materialize_message(consultation_id, message_id, actor=medico)`: médico ativo,
+  consulta atribuída e clínica vinculada; mensagem da MESMA consulta, contrato e
+  evidência simulada persistida válidos. Uma mensagem → uma fonte, OneToOne único,
+  transação e lock da consulta PostgreSQL. Repetição retorna mesma fonte, sem
+  sobrescrita. Retorna apenas `MaterializationReceipt(source_id, created)`.
+- A entrada histórica validada pode ser materializada depois da coleta, sem
+  alterar estado nem conceder leitura. A autorização aqui é de escrita interna;
+  não é liberação de conteúdo ao operador/recepção. Médico é o perfil habilitado
+  neste recorte, não staff/admin por privilégio técnico. Futuro ator automático
+  precisará de contrato/autorização explícitos em incremento posterior.
+- `source_provenance(consultation_id, source_id, actor=medico)`: exige clínica,
+  médico atribuído E `ready`. Retorna IDs/origem/versão/horários/operadores/mídia
+  da entrada original por vínculo, não copia ou reinterpreta identidade do paciente.
+  Para legado retorna `legacy=True, message_id=None`, sem inventar mensagem.
+- `record_summary_revision(consultation_id, item_id, actor=medico)`: exige leitura
+  clínica `ready`; captura um SummaryItem já existente, sem gerar/alterar resumo
+  ou correção. Retorna ID da revisão. Conteúdo/referências observados iguais são
+  idempotentes; mudanças acrescentam revisão numerada, nunca sobrescrevem anterior.
+- `summary_revisions(consultation_id, item_id, actor=medico)`: mesmo gate `ready`,
+  devolve snapshots e IDs de fontes da própria consulta. IDs forjados/inexistentes
+  ou fora de escopo recebem negação uniforme; referências inconsistentes rejeitadas.
+- `patient_history(patient_id, actor=medico)`: lista metadados das consultas `ready`
+  já atribuídas ao médico em clínicas vinculadas. Não consulta paciente fora do
+  escopo, não prefetch de fontes e não inclui outros médicos ou casos inéditos,
+  incompletos/cancelados/concluídos sem publicação. Mesmo patient_id não é permissão.
+
+SourceItem mantém texto/horário declarado; metadados de mídia, horário real de
+ingestão, origem, ID externo, operador simulador, consentimento e versão ficam
+preservados em InboundMessage/ConsentEvidence. Materialização registra operador
+e momento próprios. Autor de apresentação é “Entrada simulada”, não paciente
+autenticado nem IA executada. Novas referências de mídia não têm duração/transcrição
+inventadas, download ou arquivo binário; tipo imagem é apenas referência.
+Nenhum conteúdo clínico entra em OperationalEvent, logs ou erros operacionais.
+
+Modelagem de versões: SummaryRevision guarda consulta, SummaryItem e sua chave
+lógica estável, número, data/operador, seção/rótulo/atribuição/valor original,
+valor apresentado e ocultação existentes. Correção é referência numérica de
+snapshot, NÃO autoria retroativa nem FK que impeça o reset demonstrativo. A última
+correção/último update são capturados conforme a apresentação atual. Tabela
+SummaryRevisionSource preserva fontes com FK protegida e unicidade; serviço e
+validação de modelo rejeitam referências entre consultas. Não há JSON genérico,
+DTO de IA, prompt ou diagnóstico aprovado nesta modelagem: é versionamento da
+estrutura existente, independente de D07. Contrato real pode exigir evolução aditiva.
+
+As views médicas antigas não disparam snapshots automaticamente: integrar captura
+ao fluxo de revisão/publicação, com autoria/concorrência completas, fica na PR 05.
+Os locks serializam os NOVOS serviços entre si; não certificam concorrência de
+todos os escritores legados/ORM. Sem endpoints novos nem exposição no Admin.
+
+Legados permanecem editáveis pelo load_demo e sem vínculo artificial. Somente
+fontes materializadas têm proteção de sobrescrita/desvínculo nos métodos de
+instância. Revisões preservam valores/referências próprios mesmo quando fixtures
+restauram valores/correções. Fontes legadas ainda podem ser atualizadas pelo seed;
+não tratá-las como evidência imutável de produção. SQL/QuerySet/bulk privilegiados
+podem contornar validações de aplicação (incluindo integridade entre consultas);
+FKs/unicidades não são WORM nem políticas completas de retenção.
