@@ -9,6 +9,9 @@ solicitada pela equipe; suas regras específicas e interfaces ainda exigem aprov
 Atualização PR 01: base empilhada `47092e62196ae3705ece7246be3199c0d1b0a6de`,
 branch `feature/pre-ai-domain-consent`; D01–D04 aprovadas em 14/10/2026 somente
 para simulação técnica pré-IA. PR 00/#8 e PR 01 não estão integradas à main.
+Atualização PR 02: branch empilhada `feature/pre-ai-event-ingestion`, base PR #9,
+SHA `fae081e3796a780a0d5878338393585c86b4e6f3`. Ingestão técnica autorizada;
+D05 é proposta restrita ao simulador, não contrato definitivo de canal real.
 Não contém credenciais, dados pessoais, banco local ou documentos de pacientes.
 
 ## 1. Produto e estágio atual
@@ -75,12 +78,17 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
 - `ConsentEvidence` (PR 01): consulta, referência da versão apresentada,
   manifestação simulada, origem, momento, operador interno e evento exclusivo.
   Não representa identidade autenticada do paciente ou prova jurídica.
+- `InboundMessage` (PR 02): entrada privada durável, com namespace/versão/tipo,
+  texto OU metadados de mídia, horários declarado/real, operador e evidência
+  simulada aplicável. Não é `SourceItem` e não é exposta à recepção ou ao Admin.
 
 Migrações `0001`–`0003` preservam o protótipo original; `0004` acrescenta vínculos
 internos; `0005_operational_state_engine` acrescenta metadados opcionais de eventos
 e escolhas de estado. Não há migração de dados que transforme os estados antigos.
 `0006_simulated_consent_evidence` acrescenta tabela/constraints de consentimento
 e tipo de evento, sem backfill de manifestações ou alteração de estados legados.
+`0007_inboundmessage` acrescenta somente tabela e constraints de entrada, sem
+converter fontes/resumos existentes ou criar mensagens para registros históricos.
 
 ## 4. Autenticação e autorização são separadas
 
@@ -322,8 +330,8 @@ Evidências apontam para arquivos revisados na base `1e199b4`:
 | Cadastro/reutilização explícita | Implementado | `forms.py`, `test_patient_registration.py`; nome+telefone, escopo e transação; busca normalizada em Python pode precisar de otimização |
 | Grafo e auditoria de estados | Demonstrativo, serviço implementado | `state_engine.py`, `test_state_engine.py`; só local_simulation, sem endpoint ou evidência real de consentimento |
 | Consentimento versionado | Simulado na branch PR 01; ausente na base auditada | ConsentEvidence/consent.py, referência de versão e evento auditado; não é termo jurídico ou consentimento real |
-| Entrada interna unificada e simulador | Ausente | Não existe serviço de ingestão; fontes são semeadas por `load_demo` |
-| Idempotência de entrada | Ausente | Slugs/event_key únicos e seed idempotente não deduplicam envelopes/mensagens de origem |
+| Entrada interna unificada e simulador | Simulada na branch PR 02; ausente na base auditada | ingestion.py/ingestion_simulator.py; entradas duráveis privadas, nenhuma transformação em fontes clínicas |
+| Idempotência de entrada | Implementada para local_simulation na PR 02 | Chave origem/consulta/ID, comparação canônica, row lock PostgreSQL e unicidade; namespace real pendente |
 | Fontes, vínculo item–fonte e correções | Parcial | `SourceItem`, `SummaryItem.sources`, `Correction`; ações preservam original, mas não há imutabilidade/versionamento completo e fixtures são atualizáveis |
 | Resultados estruturados e histórico longitudinal | Ausente como pipeline aprovado | Não há lote/versão de resultado/processamento; não liberar todos os atendimentos só por patient_id |
 | Mídias privadas | Parcial/demonstrativo | Mapeamento local + FileResponse autorizado, teste de bytes fictícios; sem upload, retenção ou storage privado provisionado |
@@ -364,4 +372,85 @@ Ao terminar cada incremento, aplicar a política de CONTRIBUTING: atualizar conc
 e deploy conforme impacto, registrar SEMPRE resultado/próximo passo no ROADMAP e
 manter o README da raiz como navegação. Não manter guias operacionais conflitantes
 nem declarar conclusão/CI por configuração ou intenção. Publicação da PR 01
-empilhada foi autorizada; merge e PR 02 não estão autorizados nesta execução.
+empilhada foi autorizada; a execução atual autoriza também PR 02 empilhada,
+mas não merge nem implementação da PR 03.
+
+## 16. Contrato de ingestão PR 02 — D05 restrita à simulação
+
+Canal é o transporte futuro (não implementado). Mensagem/evento recebido é uma
+entrada durável `InboundMessage`, não um evento operacional de estado. Fonte
+clínica `SourceItem` é outra entidade: transformar entradas em fontes versionadas
+pertence à PR 03. Nenhuma chamada externa, arquivo binário, transcrição ou síntese.
+
+Serviço interno `preconsultas.ingestion.ingest_message(payload, actor=operador)`.
+O operador vem do contexto interno, nunca do payload. Somente perfis/vínculos da
+PR 01; sessão HTTP/paciente não é autenticada por esse serviço de shell/testes.
+Consulta inexistente/externa recebe `PermissionDenied` uniforme. Todas as chamadas,
+inclusive reentregas, exigem escopo atual, `in_progress` e último aceite simulado
+consistente com `consent_version`, reutilizando `require_consent` da PR 01.
+Caso legado em coleta sem evidência não recebe consentimento inventado e é negado.
+
+Exemplo fictício completo (ID substituído pela consulta isolada de teste):
+
+```json
+{
+  "origin": "local_simulation",
+  "contract_version": "sim.v1",
+  "consultation_id": 123,
+  "external_event_id": "sim-text-1",
+  "kind": "text",
+  "declared_at": "2026-01-01T12:01:00Z",
+  "consent_version": "sim-v1",
+  "text": "Mensagem exclusivamente fictícia."
+}
+```
+
+Para `audio`, `image` ou `pdf`, substituir `text` por `media` com exatamente
+`reference`, `mime_type`, `filename`, `size_bytes`. Referência é identificador
+opaco fictício, não URL/caminho. Exemplo: `{"reference":"sim-media-audio",
+"mime_type":"audio/mpeg","filename":"arquivo-ficticio.mp3","size_bytes":1024}`.
+
+Limites técnicos v1 do simulador, NÃO limites aprovados de WhatsApp/produção:
+
+- Consulta: inteiro positivo de 64 bits, nunca booleano/string.
+- ID/referência: até 120 caracteres ASCII alfanuméricos, ponto, `_`, `:`, `-`;
+  primeiro caractere alfanumérico. Texto: até 8000 caracteres, não vazio/branco.
+- Versão de consentimento: até 80 caracteres e correspondência explícita.
+- Horário declarado: ISO 8601 com timezone; normalizado UTC, sem assumir ordem
+  de entrega. Horário real de recebimento é gerado pelo servidor.
+- Nome de mídia: até 180 caracteres, sem controles/separadores de caminho;
+  tamanho declarado inteiro positivo até 25 MiB (metadado, não arquivo recebido).
+- MIME: áudio mpeg/ogg/wav; imagem jpeg/png/webp; PDF application/pdf.
+- Campos desconhecidos, identidade de paciente/operador, binários, texto misturado
+  com mídia, URL, versão incompatível e estruturas inválidas são rejeitados.
+
+Idempotência: constraint única `(origin, consultation_id, external_event_id)` e
+bloqueio da consulta compartilhado com os serviços de consentimento/estado no
+PostgreSQL. Mesmo ID/conteúdo: `redelivered`; conteúdo diferente: `conflict`, sem
+sobrescrever. IDs distintos com conteúdo igual e IDs iguais em consultas distintas
+são entradas válidas. Recebimento original/operador nunca são sobrescritos.
+
+Equivalência usa JSON canônico em memória, com chaves ordenadas, delimitadores
+estáveis e horário declarado convertido a UTC com microssegundos. Inclui versão,
+tipo, texto exato, metadados e versão do consentimento; exclui horário gerado,
+operador e IDs internos. Espaços/Unicode do texto não são normalizados; mudanças
+reais de texto/metadados/horário declarado são conflito. Não há campo genérico
+de payload armazenado ou segunda máquina de estados.
+
+Retorno `IngestionReceipt`: apenas `status` (`created`, `redelivered`, `conflict`),
+`message_id` interno e `is_simulated=True`. Nunca retorna texto, mídia ou hashes.
+Contrato inválido: `InvalidEnvelope`, mensagem genérica/código `invalid_envelope`;
+estado/consentimento: `InvalidTransition`; escopo: `PermissionDenied`;
+falha de banco: `IngestionPersistenceError` sanitizado e rollback. Não há logs de
+payload nem novo `OperationalEvent`; operador/momento/evidência ficam na entrada
+privada. Isso não autoriza leitura clínica pela recepção/admin.
+
+Entradas fora de ordem preservam horário declarado e ordem de recebimento,
+sem reordenar estados. O simulador interno retorna fixtures fixas e replays;
+execução segura em banco temporário está em [deploy](../deploy.md). Não cria
+usuários, consentimento ou consultas automaticamente; testes fazem setup explícito.
+
+Pendências para canais reais: autenticação/origem, namespace por conta/integrador,
+limites/mídias, semântica de ordem/reentrega após encerramento, identidade e
+retenção. Proteção de métodos de instância não é WORM; SQL/QuerySet privilegiados
+podem alterar dados. PR 03 deve definir D06 antes de transformar entradas em fontes.

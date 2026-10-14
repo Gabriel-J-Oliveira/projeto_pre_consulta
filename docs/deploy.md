@@ -96,7 +96,7 @@ python manage.py showmigrations preconsultas --plan
 python manage.py migrate
 ```
 
-Migrações de domínio nesta branch PR 01: `0001`–`0006`; não apagar, renumerar, fazer
+Migrações de domínio nesta branch PR 02: `0001`–`0007`; não apagar, renumerar, fazer
 `--fake` ou reiniciar o histórico. PR 00 não cria/aplica migração. SQLite usa
 `db.sqlite3` da cópia atual; transferência de dados para PostgreSQL não é
 automática nem está aprovada como operação desta preparação.
@@ -108,6 +108,30 @@ para validar este trabalho. Reverter 0006 remove a tabela de evidências: não
 executar rollback sobre evidências existentes sem plano e autorização.
 Validação interna por shell e consentimento simulado: [motor](state-engine.md).
 Não há nova variável, credencial, dependência ou serviço externo.
+
+PR 02 acrescenta `0007_inboundmessage` sobre 0006, somente tabela/constraints.
+Não cria mensagens históricas nem transforma SourceItem/SummaryItem. Upgrade
+incremental validado por teste em banco temporário. Reverter 0007 remove entradas
+duráveis: não reverter sobre dados preservados sem plano/autorização. Nenhuma
+dependência, variável de ambiente, endpoint ou serviço novo é necessário.
+
+### Simulador de ingestão — somente banco fictício isolado
+
+Use o ambiente de testes configurado acima, nunca conexão de produção, e execute:
+
+```powershell
+python manage.py test preconsultas.test_ingestion.IngestionTests.test_out_of_order_preserves_declared_and_arrival_order
+python manage.py test preconsultas.test_ingestion
+```
+
+O runner cria/remove banco temporário e fixtures fictícias com operador sem senha
+utilizável, perfil/clínica, aceite simulado e coleta iniciada explicitamente.
+`ingestion_simulator.run_simulation` envia texto fora de ordem, duplicata e mídia,
+e repete a sequência para conferir idempotência. Não cria contas padrão nem envia
+mensagens. Não executar a função por shell no banco preservado; sua interface
+recebe uma consulta e não consegue comprovar que seus dados sejam fictícios.
+Contrato e retornos: [contexto conceitual, seção 16](planning/README.md#16-contrato-de-ingestão-pr-02--d05-restrita-à-simulação).
+Concorrência no PostgreSQL usa testes com conexões/barreira; no SQLite são ignorados.
 
 ## 5. Dados fictícios, contas e inicialização
 
