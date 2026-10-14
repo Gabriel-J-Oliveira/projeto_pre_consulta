@@ -96,7 +96,7 @@ python manage.py showmigrations preconsultas --plan
 python manage.py migrate
 ```
 
-Migrações de domínio nesta branch PR 03: `0001`–`0008`; não apagar, renumerar, fazer
+Migrações de domínio nesta branch PR 04: `0001`–`0009`; não apagar, renumerar, fazer
 `--fake` ou reiniciar o histórico. PR 00 não cria/aplica migração. SQLite usa
 `db.sqlite3` da cópia atual; transferência de dados para PostgreSQL não é
 automática nem está aprovada como operação desta preparação.
@@ -136,6 +136,31 @@ metadado, reentrega, snapshots, escopos, rollback e upgrade 0007→0008. Dois no
 testes concorrentes usam PostgreSQL; SQLite os ignora. Nenhum usuário padrão,
 endpoint ou processo de IA criado. Não executar setup por shell no banco preservado.
 Interfaces/justificativa do modelo: [conceito, seção 17](planning/README.md#17-proveniência-e-revisões-pr-03--d06-técnica-aprovada).
+
+### Orquestrador/fake — execução isolada PR 04
+
+`0009_ai_orchestration` cria AIExecution/AIAttempt/AIExecutionSource e constraints,
+sem alteração/backfill de domínio, execuções antigas ou tabelas de resumo. Revisar
+plano e aplicar só no banco/cópia autorizados para esse incremento. Upgrade 0008→0009
+é ensaiado no banco de testes, não no SQLite preservado. Reverter 0009 apaga auditoria
+técnica: sem downgrade automático ou autorização para apagar execuções existentes.
+Nenhuma dependência, variável de ambiente, credencial ou serviço novo.
+
+Com ambiente de testes configurado (SQLite explícito ou PG descartável):
+
+```powershell
+python -m preconsultas.ai_examples
+python manage.py test preconsultas.test_ai_contract preconsultas.test_ai_orchestration
+```
+
+O primeiro comando imprime somente fixtures fixas fictícias, sem Django/DB/rede.
+O segundo usa banco temporário, perfis explícitos e aceite simulado; não cria contas
+ou senhas padrão. Não executar setup por shell, seed ou migração no banco preservado.
+Dois testes novos concorrentes precisam PostgreSQL; ignorados no SQLite, não confundir
+com aprovação de concorrência. CI existente PG17 em qualquer base executa toda suíte.
+Execuções `running` após interrupção/falha de finalização exigem investigação humana;
+sem timeout/recuperação/retry automático e sem remoção de linhas por conveniência.
+Port/fake/contrato/retry e limites: [referência IA](ai/README.md).
 
 ### Simulador de ingestão — somente banco fictício isolado
 
