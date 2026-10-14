@@ -23,7 +23,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 
 | Entrega | Estado | Dependência | Branch proposta/real | PR e commit da entrega |
 | --- | --- | --- | --- | --- |
-| PR 00 — Preparação/documentação | Em revisão; publicação autorizada | Base auditada | `chore/prepare-pre-ai` (real) | Publicação em andamento; evidências abaixo |
+| PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
 | PR 01 — Domínio/consentimento | Pendente | Revisão da PR 00 + decisões D01–D04 | `feature/pre-ai-domain-consent` (proposta) | Não criados |
 | PR 02 — Entrada unificada | Pendente | PR 01 + origem/autorização D05 | `feature/pre-ai-event-ingestion` (proposta) | Não criados |
 | PR 03 — Persistência/rastreabilidade | Pendente | PR 02 + escopo longitudinal D06 | `feature/pre-ai-traceability` (proposta) | Não criados |
@@ -312,6 +312,7 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — auditoria antes de editar | `main`, mesmo SHA | Check sem problemas; drift sem alterações; 86 testes SQLite aprovados, banco de testes temporário |
 | 14/10/2026 — PR 00 preparação, entregue para revisão local | `chore/prepare-pre-ai`, base/HEAD `1e199b4`; sem commit/PR da entrega | Check sem problemas; drift sem alterações; 86 testes SQLite aprovados novamente (antes: 86; depois: 86), sem regressão. 46 links Markdown locais e 12 referências externas GitHub válidas; diff sem whitespace errors |
 | 14/10/2026 — finalização autorizada da PR 00 | `chore/prepare-pre-ai`, base `1e199b4`; publicação em andamento | Check sem problemas; drift sem alterações; 86 testes SQLite aprovados em 25,419 s. Revisão dos nove documentos, incluindo três novos; 50 links locais válidos; nenhum código/configuração funcional alterado. CI da entrega ainda não executada neste registro |
+| 14/10/2026 — publicação da PR 00 | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8), base `main`, commit documental `d4e0d11` | Nove documentos publicados; PR aberta sem merge. Este registro subsequente não muda runtime; CI do HEAD final deve ser conferida nos checks da PR, sem tratar a execução histórica da base como aprovação |
 
 Dados/configurações locais existentes foram comparados por hash antes/depois e
 permaneceram iguais nos três bancos SQLite encontrados; nenhum `.env` existia
@@ -329,8 +330,10 @@ Não encontrados `docker`/`psql` no PATH, portanto sem validação PostgreSQL lo
 
 Smokes browser não executados nesta preparação: nenhuma UI/runtime alterada e
 sem manipular conta/banco de validação. Testes Django existentes continuam obrigatórios.
-Publicação foi autorizada após revisão favorável; CI da entrega será verificada
-após abertura da PR. A CI histórica
+Publicação foi autorizada após revisão favorável e a PR GitHub #8 está aberta.
+O resultado da CI do HEAD final deve ser conferido nos checks dessa PR e no
+relatório de entrega; este registro de publicação não antecipa sua aprovação.
+A CI histórica
 da base não é uma execução de `chore/prepare-pre-ai`.
 Nenhuma migração, seed, reset/flush, criação de usuário ou reinício de servidor
 foi executado no banco/instância de validação. Seeds executados pelos testes
@@ -346,8 +349,8 @@ o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídi
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: publicar somente a PR 00 autorizada, aguardar CI real e análise
-do solicitante antes de integrar. Merge e PR 01 NÃO estão autorizados.
+Próximo passo: aguardar CI real da PR 00 publicada e análise do solicitante
+antes de integrar. Merge e PR 01 NÃO estão autorizados.
 Antes da PR 01, decidir D01–D04 e
 formalizar critérios de aceite. Primeiro recorte recomendado: evidência versionada
 SIMULADA claramente identificada e pré-condições do serviço existente, sem publicar
