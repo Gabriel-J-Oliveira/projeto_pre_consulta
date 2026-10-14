@@ -163,3 +163,13 @@ Testes cobrem rollback de evidência/eventos/estado e upgrade 0005→0006 sem
 consentimento inventado. Dois testes concorrentes usam conexões reais e barreira
 no PostgreSQL (duplicação de versão e início de coleta); são ignorados no SQLite,
 que não tem bloqueio de linha. SQLite aprovado não comprova essa concorrência.
+
+## Interface com ingestão (PR 02)
+
+`ingestion.ingest_message` reutiliza `lock_scoped_consultation` e `require_consent`,
+sem mudar o grafo, `Consultation.status` ou eventos do motor. Ingestão (inclusive
+replay) exige coleta e último aceite simulado/versão explícita; não preenche
+consentimento de casos legados. O lock da consulta coordena ingestão, estado e
+consentimento no PostgreSQL. A entrada privada referencia a evidência usada,
+sem texto clínico em OperationalEvent. Não é transformação em fonte clínica.
+Contrato: [contexto](planning/README.md#16-contrato-de-ingestão-pr-02--d05-restrita-à-simulação).

@@ -10,6 +10,11 @@ PR 01: exceção de fluxo empilhado autorizada em 14/10/2026. Base real
 árvore limpa e PR GitHub #8 aberta. Implementação/publicação autorizadas sem
 aguardar merge de #8; main e #8 não serão alteradas. Nenhum merge autorizado.
 
+PR 02: implementação/publicação empilhada autorizada sobre
+`origin/feature/pre-ai-domain-consent`, SHA `fae081e3796a780a0d5878338393585c86b4e6f3`,
+árvore limpa; ancestralidade com #8 confirmada, #8/#9 abertas. Nenhum merge,
+alteração de main/PRs anteriores ou implementação da PR 03 autorizados.
+
 Referências: [conceito e auditoria](README.md), [operação/deploy](../deploy.md),
 [estados atuais](../state-engine.md), [histórico da migração](../repository-migration.md),
 [política documental](../../CONTRIBUTING.md).
@@ -30,7 +35,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | --- | --- | --- | --- | --- |
 | PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
 | PR 01 — Domínio/consentimento | Em revisão; PR aberta, sem merge | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9); implementação `3dd3e2cba0d7aa1ab97038ddf487072b821927a9`; registro de publicação em commit subsequente |
-| PR 02 — Entrada unificada | Pendente | PR 01 + origem/autorização D05 | `feature/pre-ai-event-ingestion` (proposta) | Não criados |
+| PR 02 — Entrada unificada | Em revisão; PR aberta, sem merge | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10); implementação `fcd6ac8874988b55e64a9fd1987c605588f3eaf6`; registro de publicação em commit subsequente |
 | PR 03 — Persistência/rastreabilidade | Pendente | PR 02 + escopo longitudinal D06 | `feature/pre-ai-traceability` (proposta) | Não criados |
 | PR 04 — Orquestrador/contrato IA | Pendente | PR 03 + contrato/processamento D07 | `feature/pre-ai-orchestration` (proposta) | Não criados |
 | PR 05 — Revisão médica | Pendente | PR 04 + liberação clínica D04 | `feature/pre-ai-medical-review` (proposta) | Não criados |
@@ -117,7 +122,14 @@ documentados e validação de contexto. Não abrir webhook externo por conveniê
 Reutilizar dados e políticas do domínio, sem tratar `OperationalEvent.event_key`
 como mecanismo completo de deduplicação de entrada.
 
-Escopo futuro: mensagens e metadados de mídia, origem/correlação, chave de
+Implementado na branch PR 02: `InboundMessage`, contrato `sim.v1` e serviço
+`ingestion.ingest_message`; entradas privadas duráveis, sem criar fontes clínicas.
+Somente coleta com aceite simulado e escopo da PR 01. Retornos metadata-only,
+conflito explícito sem sobrescrita, simulador determinístico em testes isolados.
+Migração aditiva 0007; nenhum backfill, estado novo ou mudança automática de estado.
+Detalhes do contrato/limites: [conceito](README.md#16-contrato-de-ingestão-pr-02--d05-restrita-à-simulação).
+
+Escopo: mensagens e metadados de mídia, origem/correlação, chave de
 idempotência com namespace de origem, deduplicação, simulador determinístico.
 Entrada inválida, reentrega e falha parcial não criam fontes/eventos duplicados.
 Receber metadado não significa baixar, armazenar, transcrever ou analisar mídia.
@@ -235,7 +247,7 @@ na sprint posterior, não nesta PR.
 | D02 | Aprovada matriz simulada com negação por padrão e local_simulation; atores/origens de produção pendentes | PR 01 técnica; produção não autorizada |
 | D03 | Aprovados estados finais sem reabertura/timeout automático; critérios de encerramento produtivo pendentes | PR 01 preserva grafo; nenhuma automação |
 | D04 | Aprovada fronteira completed != ready e serviço autorizado; critérios/ator de publicação pendentes | PR 01 invariantes; PR 05 implementará publicação |
-| D05 | Envelope interno, autenticação de origem, namespace de idempotência e regras de ordenação | PR 02 |
+| D05 | Proposta técnica do simulador implementada por autorização da PR 02; contrato/namespace/autenticação/ordem de canais reais continuam pendentes | PR 02 simulado; canais reais não autorizados |
 | D06 | Escopo longitudinal por paciente sem ampliar acesso entre médicos/clínicas; retenção/versionamento e mídias | PR 03 |
 | D07 | Contratos IA, versão, limites de input/output, retry e execução síncrona/assíncrona | PR 04, acordo com desenvolvedor de IA |
 | D08 | Hosting/homologação, armazenamento privado, backup/restore, segurança e critério de prontidão | Antes de deploy; PR 03/06 conforme escopo |
@@ -302,6 +314,22 @@ Estas quatro aprovações limitam-se à simulação técnica; não constituem de
 jurídicas, clínicas ou funcionais definitivas para produção. A aprovação veio do
 prompt específico da PR 01, não da simples autorização de publicação da PR 00.
 
+### D05 — Proposta técnica restrita ao simulador
+
+Implementação técnica autorizada em 14/10/2026 pelo prompt da PR 02; D05 não é
+aprovação definitiva para canais reais. Contrato estrito `sim.v1`, origem local,
+operador interno separado do payload/paciente e namespace origem/consulta/ID.
+Equivalência canônica: mesmo ID/conteúdo reentrega; diferente conflito; IDs
+distintos válidos. Horário declarado fora de ordem preservado sem alterar estado.
+Retorno sem conteúdo; nenhum payload clínico em auditoria operacional.
+Alternativas avaliadas: deduplicar por conteúdo (descarta mensagens legítimas),
+ID global (colide entre consultas), sobrescrever reentrega (perde evidência).
+Recomendação técnica do simulador: chave única composta, comparação estável e
+lock de consulta PostgreSQL com gate de estado/consentimento em cada tentativa.
+Limites técnicos v1 estão no conceito e não são regras de mídia/ordem aprovadas
+de WhatsApp. Namespace por conta/integrador, autenticação de canal, prova de
+identidade, limites reais, ordenação/encerramento e retenção exigem aprovação.
+
 ## 11. Governança Git observada e recomendada
 
 Consulta somente leitura em 14/10/2026: API de proteção de main retornou
@@ -332,6 +360,21 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — CI da PR 00 conferida antes da PR 01 | GitHub #8, HEAD `47092e6` | [CI 38589941140](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38589941140) aprovada, PostgreSQL 17.11 e 86 testes; PR aberta sem revisão formal nem merge |
 | 14/10/2026 — PR 01 local, após aprovação técnica D01–D04 | `feature/pre-ai-domain-consent`, base `47092e6` | Check sem problemas; drift sem alterações; migrate --plan revisado. Suíte: 108 testes, 106 aprovados e 2 concorrentes ignorados no SQLite, 27,623 s; upgrade 0005→0006 validado em banco temporário, sem backfill. PostgreSQL local não disponível; CI da entrega ainda não executada |
 | 14/10/2026 — PR 01 publicada e CI da implementação | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9), base `chore/prepare-pre-ai`, commit `3dd3e2c` | [CI 38596880729](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38596880729) aprovada no PostgreSQL 17.11, 108 testes sem skips, incluindo concorrência e upgrade. Check, drift, migrate e load_demo duas vezes aprovados. Sem revisão formal/merge; o commit documental seguinte exige nova CI do HEAD final |
+| 14/10/2026 — CI final da base PR 01 | GitHub #9, HEAD `fae081e` | [CI 38597110215](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38597110215) aprovada, PostgreSQL 17.11 e 108 testes sem skips. #8/#9 ainda abertas, sem merge |
+| 14/10/2026 — PR 02 local | `feature/pre-ai-event-ingestion`, base `fae081e` | Check sem problemas, drift sem alterações, migrate --plan revisado. 135 testes em SQLite temporário: 131 aprovados, 4 concorrentes ignorados, 29,121 s. Upgrade 0006→0007 preserva evidência/fontes/resumos/estados; nenhuma entrada inventada. CI da entrega ainda não executada |
+| 14/10/2026 — PR 02 publicada e CI da implementação | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10), base `feature/pre-ai-domain-consent`, commit `fcd6ac8` | [CI 38599542994](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38599542994) aprovada em PostgreSQL 17.11: 135 testes sem skips, incluindo quatro concorrentes e upgrade incremental. Check, drift, migrate e demo duas vezes aprovados. Sem revisão formal/merge; o commit documental subsequente exige nova CI do HEAD final |
+
+Registro PR 02: InboundMessage, ingest_message, contrato sim.v1, simulador e
+migração 0007. Ajuste mínimo do teste de migração da PR 01 para restaurar as
+folhas atuais após ensaio, preservando os 108 testes anteriores. Conceito,
+ROADMAP, deploy e interface com motor atualizados; AGENTS/CONTRIBUTING, README
+principal e workflow revisados, sem mudança necessária. Não há endpoint, UI,
+dependência, credencial ou serviço novo. Nenhum conteúdo de entrada é gravado em
+OperationalEvent. Execução do simulador somente no banco temporário dos testes,
+sem seed/reset/flush sobre bancos preservados ou reinício dos servidores.
+PostgreSQL local não disponível (docker/psql não encontrados no PATH); concorrência
+real exige CI. Smokes browser não executados, pois não há alteração de telas;
+regressões de autenticação/CSRF/permissões/rotas cobertas pela suíte existente.
 
 Registro PR 01: modelo/evidência, serviço de consentimento, matriz/pré-condições do
 motor, evento de manifestação e relógio de auditoria sem deslocamento de fixture.
@@ -373,17 +416,18 @@ real de homologação/produção inexistente; é gate futuro, não resultado apr
 
 ## 13. Problemas conhecidos e próximo passo
 
-Consentimento real, catálogo jurídico de termos, ingestão idempotente, processamento/contratos,
+Consentimento real, catálogo jurídico de termos, ingestão por canais reais, processamento/contratos,
 resultados estruturados versionados e release clínico não existem. Rastreabilidade
 de fontes/correções é parcial; notas/correções/feedback não registram usuário;
 o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídia
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: revisão humana da PR 01 empilhada publicada e confirmação da CI
-do HEAD final após este registro. Nenhum merge autorizado; #8 continua aberta e intacta.
-PR 02 será o próximo incremento, mas não iniciar nesta execução: aprovar D05
-(envelope, origem/autorização, idempotência e ordenação) e escopo antes de codar.
+Próximo passo: aguardar revisão da PR 02 publicada e conferir CI do HEAD final
+após este registro. #8/#9 permanecem abertas e intactas; nenhum merge autorizado.
+PR 03 depende destas entradas duráveis e de D06 (versionamento/proveniência,
+escopo longitudinal/retenção/armazenamento). Não iniciar PR 03 nesta execução;
+definir seu recorte e decisões pendentes com a equipe antes de implementar.
 
 ## 14. Registro obrigatório em cada entrega
 

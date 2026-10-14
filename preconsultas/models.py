@@ -311,3 +311,49 @@ class ConsentEvidence(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Evidências simuladas devem ser preservadas.")
+
+
+class InboundMessage(models.Model):
+    """Durable private input; NOT a clinical SourceItem or operational payload."""
+    consultation = models.ForeignKey(Consultation, on_delete=models.PROTECT, related_name="inbound_messages")
+    origin = models.CharField(max_length=30, default="local_simulation")
+    external_event_id = models.CharField(max_length=120)
+    contract_version = models.CharField(max_length=20)
+    kind = models.CharField(max_length=5, choices=[
+        ("text", "Texto"), ("audio", "Referência de áudio"),
+        ("image", "Referência de imagem"), ("pdf", "Referência de PDF"),
+    ])
+    text = models.TextField(blank=True)
+    media = models.JSONField(default=dict, blank=True)
+    declared_at = models.DateTimeField()
+    received_at = models.DateTimeField(editable=False)
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                 related_name="simulated_inbound_messages")
+    consent = models.ForeignKey(ConsentEvidence, on_delete=models.PROTECT, related_name="inbound_messages")
+    is_simulated = models.BooleanField(default=True, editable=False)
+
+    class Meta:
+        ordering = ["received_at", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["origin", "consultation", "external_event_id"],
+                                    name="unique_inbound_namespace_event"),
+            models.CheckConstraint(condition=models.Q(origin="local_simulation", is_simulated=True),
+                                   name="inbound_simulation_only"),
+            models.CheckConstraint(condition=models.Q(contract_version="sim.v1"), name="inbound_contract_v1"),
+            models.CheckConstraint(condition=models.Q(kind__in=["text", "audio", "image", "pdf"]),
+                                   name="inbound_kind_valid"),
+            models.CheckConstraint(condition=~models.Q(external_event_id=""), name="inbound_id_not_empty"),
+            models.CheckConstraint(
+                condition=(models.Q(kind="text", media={}) & ~models.Q(text=""))
+                | (models.Q(kind__in=["audio", "image", "pdf"], text="") & ~models.Q(media={})),
+                name="inbound_content_matches_kind",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Mensagens recebidas não podem ser sobrescritas.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Mensagens recebidas devem ser preservadas.")

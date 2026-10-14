@@ -354,7 +354,9 @@ class ConsentMigrationTests(TransactionTestCase):
                     occurred_at=timezone.now(), detail="Fixture legada fictícia.",
                 )
         finally:
-            MigrationExecutor(connection).migrate(after)
+            # Restore current leaves so later increments keep their test schema.
+            restored = MigrationExecutor(connection)
+            restored.migrate(restored.loader.graph.leaf_nodes())
         self.assertCountEqual(Consultation.objects.values_list("status", flat=True),
                               ["ready", "in_progress", "consent_declined"])
         self.assertEqual(OperationalEvent.objects.count(), 3)
