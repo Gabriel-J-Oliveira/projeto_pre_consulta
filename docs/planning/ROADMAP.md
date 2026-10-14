@@ -5,6 +5,11 @@ Referência oficial de planejamento, resultados e próximo passo. Atualização:
 `1e199b4577d8a6c64b30c3744d4bea4adfd308bf`, confirmado igual ao remoto.
 Árvore inicial limpa; origem: `Gabriel-J-Oliveira/projeto_pre_consulta`.
 
+PR 01: exceção de fluxo empilhado autorizada em 14/10/2026. Base real
+`origin/chore/prepare-pre-ai`, SHA `47092e62196ae3705ece7246be3199c0d1b0a6de`,
+árvore limpa e PR GitHub #8 aberta. Implementação/publicação autorizadas sem
+aguardar merge de #8; main e #8 não serão alteradas. Nenhum merge autorizado.
+
 Referências: [conceito e auditoria](README.md), [operação/deploy](../deploy.md),
 [estados atuais](../state-engine.md), [histórico da migração](../repository-migration.md),
 [política documental](../../CONTRIBUTING.md).
@@ -24,7 +29,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | Entrega | Estado | Dependência | Branch proposta/real | PR e commit da entrega |
 | --- | --- | --- | --- | --- |
 | PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
-| PR 01 — Domínio/consentimento | Pendente | Revisão da PR 00 + decisões D01–D04 | `feature/pre-ai-domain-consent` (proposta) | Não criados |
+| PR 01 — Domínio/consentimento | Em revisão; PR aberta, sem merge | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9); implementação `3dd3e2cba0d7aa1ab97038ddf487072b821927a9`; registro de publicação em commit subsequente |
 | PR 02 — Entrada unificada | Pendente | PR 01 + origem/autorização D05 | `feature/pre-ai-event-ingestion` (proposta) | Não criados |
 | PR 03 — Persistência/rastreabilidade | Pendente | PR 02 + escopo longitudinal D06 | `feature/pre-ai-traceability` (proposta) | Não criados |
 | PR 04 — Orquestrador/contrato IA | Pendente | PR 03 + contrato/processamento D07 | `feature/pre-ai-orchestration` (proposta) | Não criados |
@@ -82,15 +87,21 @@ Reaproveitar `Consultation.status`, grafo/serviço `state_engine`, eventos e sco
 Não adicionar um segundo estado de pré-consulta. Preservar `ready` legado sem
 confundi-lo com `completed` e sem liberar automaticamente os casos incompletos.
 
-Implementação futura, após aprovação:
+Implementação na branch PR 01, ainda sem revisão formal/integração:
 
-- Evidências versionadas do consentimento, associadas à consulta, versão do termo,
-  origem e momento; distinguir simulação de evidência real. Forma e campos finais
-  dependem de D01, não são um modelo aprovado nesta preparação.
+- `ConsentEvidence`: consulta, referência de versão, manifestação, origem/momento,
+  simulação, operador interno e evento exclusivo. Serviço `consent.py` acrescenta
+  uma manifestação por consulta/versão apenas aguardando consentimento; duplicata
+  rejeitada. Aceite não inicia coleta; recusa encerra atomicamente. Não é prova real.
 - Pré-condições explícitas de transições, atores autorizados e regras de recusa,
   cancelamento/incompletude; não criar retomada/reabertura por suposição.
 - Atualização atômica com evento/auditoria; compatibilidade dos registros legados.
 - Separação de conclusão operacional e autorização de publicação clínica.
+- Migração aditiva `0006_simulated_consent_evidence`, sem backfill nem alterações
+  dos estados legados; referência de versão não é catálogo de termos jurídicos.
+- Matriz `TRANSITION_POLICY`: somente `local_simulation`, médico atribuído/clínica
+  e recepção/clínica. Coleta exige última evidência de aceite e versão explícita;
+  administração sem vínculo e demais origens negadas. Publicação permanece PR 05.
 
 Aceite/testes: consentimento ausente/incorreto/versionado e duplicado; transições
 válidas/inválidas; escopo dos atores; rejeição de clínica/consulta forjada; rollback
@@ -216,28 +227,30 @@ Infra/homologação seguem gates de [deploy](../deploy.md), sem declarar ambient
 provisionados. WhatsApp Cloud API, webhooks reais e recebimento de mídia entram
 na sprint posterior, não nesta PR.
 
-## 10. Decisões que exigem aprovação humana
+## 10. Aprovações técnicas e decisões humanas remanescentes
 
 | ID | Decisão pendente | Gate |
 | --- | --- | --- |
-| D01 | Texto/versões do consentimento, evidência aceitável, representante do paciente e distinção de simulação/real | PR 01 |
-| D02 | Quais atores/origens podem executar cada transição em produção | PR 01 |
-| D03 | Motivos/critérios de incompletude/cancelamento, eventual retomada/reabertura e timeout | PR 01; nada inferido automaticamente |
-| D04 | Critérios/ator de publicação clínica, uso dos casos incompletos e relação entre completed/ready | PR 01 define fronteira; PR 05 implementa publicação |
+| D01 | Aprovada versão/evidência exclusivamente simulada; texto jurídico, evidência real e representação pendentes | PR 01 técnica; produção não autorizada |
+| D02 | Aprovada matriz simulada com negação por padrão e local_simulation; atores/origens de produção pendentes | PR 01 técnica; produção não autorizada |
+| D03 | Aprovados estados finais sem reabertura/timeout automático; critérios de encerramento produtivo pendentes | PR 01 preserva grafo; nenhuma automação |
+| D04 | Aprovada fronteira completed != ready e serviço autorizado; critérios/ator de publicação pendentes | PR 01 invariantes; PR 05 implementará publicação |
 | D05 | Envelope interno, autenticação de origem, namespace de idempotência e regras de ordenação | PR 02 |
 | D06 | Escopo longitudinal por paciente sem ampliar acesso entre médicos/clínicas; retenção/versionamento e mídias | PR 03 |
 | D07 | Contratos IA, versão, limites de input/output, retry e execução síncrona/assíncrona | PR 04, acordo com desenvolvedor de IA |
 | D08 | Hosting/homologação, armazenamento privado, backup/restore, segurança e critério de prontidão | Antes de deploy; PR 03/06 conforme escopo |
 | G01 | Autorizar configuração da proteção main e conceder acesso ao segundo desenvolvedor | Governança; não aplicado em PR 00 |
 
-O roadmap foi solicitado, mas essas regras específicas não foram aprovadas.
-Não considerar uma proposta de documentação decisão de produto. Não houve
+O solicitante aprovou D01–D04 em 14/10/2026 no prompt de PR 01 empilhada, somente
+para implementação técnica pré-IA com dados fictícios. Não é aprovação jurídica,
+clínica ou de uso real. As pendências de produção acima não foram decididas.
+Não houve
 consulta ao Notion nesta execução; requisitos adicionais precisam de evidência
 autorizada ou validação humana, não de suposição.
 
 ### D01 — Consentimento versionado, inicialmente simulado
 
-Proposta técnica ainda NÃO aprovada. Alternativas: apenas status/evento;
+Aprovada tecnicamente em 14/10/2026, somente para simulação. Alternativas avaliadas: apenas status/evento;
 evidência versionada inicialmente simulada; coleta real integrada desde o início.
 Recomendação: evidência versionada vinculada à consulta, identificando versão,
 origem, momento e simulação, sem inventar consentimento para registros legados.
@@ -248,18 +261,19 @@ termo, representação e evidência juridicamente aceitável continuam pendentes
 
 ### D02 — Matriz explícita de transições por ator e origem
 
-Proposta técnica ainda NÃO aprovada. Alternativas: reutilizar permissões genéricas
+Aprovada tecnicamente em 14/10/2026, somente para simulação. Alternativas avaliadas: reutilizar permissões genéricas
 do simulador; matriz explícita por transição/ator/origem; liberar por staff/admin.
 Recomendação: matriz centralizada no domínio, com negação por padrão e escopo de
 consulta/clínica, distinguindo simulação de origens futuras autenticadas.
 Riscos: matriz incompleta pode bloquear operações; permissões genéricas ou flags
 técnicas podem ampliar acesso; origem declarada não comprova identidade.
-Consequências: equipe precisa aprovar cada combinação e pré-condição antes da
-PR 01; testar negações e auditoria. A matriz não concede acesso clínico.
+Consequências: matriz simulada preserva perfis/vínculos existentes e origem local;
+combinações de produção exigem aprovação futura. Testar negações e auditoria;
+a matriz não concede acesso clínico.
 
 ### D03 — Estados finais sem reabertura ou timeout automático
 
-Proposta técnica ainda NÃO aprovada para o primeiro incremento. Alternativas:
+Aprovada tecnicamente em 14/10/2026 para o primeiro incremento simulado. Alternativas:
 estados finais sem saída; reabertura manual auditada; retomada/timeout automáticos.
 Recomendação: manter estados finais sem reabertura e sem timeout automático,
 preservando o grafo conservador e o `ready` legado; transições sempre explícitas.
@@ -271,7 +285,8 @@ sem inferir uma regra nova nesta preparação.
 
 ### D04 — Publicação por serviço autorizado
 
-Proposta técnica ainda NÃO aprovada. Alternativas: promoção automática de
+Aprovada tecnicamente em 14/10/2026 somente a fronteira, sem publicar neste incremento.
+Alternativas: promoção automática de
 `completed` para `ready`; escrita direta pelas views/ORM; serviço autorizado
 com validações e auditoria explícitas de publicação.
 Recomendação: serviço autorizado, sem promoção automática de `completed` para
@@ -283,8 +298,9 @@ Consequências: PR 01 preserva a fronteira; PR 05 implementa a publicação apó
 aprovação. `ready` significa disponível para revisão, não aprovação clínica;
 casos incompletos seguem bloqueados até decisão explícita da equipe.
 
-Estas quatro recomendações não constituem decisões jurídicas, clínicas ou
-funcionais definitivas. Aprovar publicação da PR 00 não aprova D01–D04.
+Estas quatro aprovações limitam-se à simulação técnica; não constituem decisões
+jurídicas, clínicas ou funcionais definitivas para produção. A aprovação veio do
+prompt específico da PR 01, não da simples autorização de publicação da PR 00.
 
 ## 11. Governança Git observada e recomendada
 
@@ -313,6 +329,21 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — PR 00 preparação, entregue para revisão local | `chore/prepare-pre-ai`, base/HEAD `1e199b4`; sem commit/PR da entrega | Check sem problemas; drift sem alterações; 86 testes SQLite aprovados novamente (antes: 86; depois: 86), sem regressão. 46 links Markdown locais e 12 referências externas GitHub válidas; diff sem whitespace errors |
 | 14/10/2026 — finalização autorizada da PR 00 | `chore/prepare-pre-ai`, base `1e199b4`; publicação em andamento | Check sem problemas; drift sem alterações; 86 testes SQLite aprovados em 25,419 s. Revisão dos nove documentos, incluindo três novos; 50 links locais válidos; nenhum código/configuração funcional alterado. CI da entrega ainda não executada neste registro |
 | 14/10/2026 — publicação da PR 00 | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8), base `main`, commit documental `d4e0d11` | Nove documentos publicados; PR aberta sem merge. Este registro subsequente não muda runtime; CI do HEAD final deve ser conferida nos checks da PR, sem tratar a execução histórica da base como aprovação |
+| 14/10/2026 — CI da PR 00 conferida antes da PR 01 | GitHub #8, HEAD `47092e6` | [CI 38589941140](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38589941140) aprovada, PostgreSQL 17.11 e 86 testes; PR aberta sem revisão formal nem merge |
+| 14/10/2026 — PR 01 local, após aprovação técnica D01–D04 | `feature/pre-ai-domain-consent`, base `47092e6` | Check sem problemas; drift sem alterações; migrate --plan revisado. Suíte: 108 testes, 106 aprovados e 2 concorrentes ignorados no SQLite, 27,623 s; upgrade 0005→0006 validado em banco temporário, sem backfill. PostgreSQL local não disponível; CI da entrega ainda não executada |
+| 14/10/2026 — PR 01 publicada e CI da implementação | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9), base `chore/prepare-pre-ai`, commit `3dd3e2c` | [CI 38596880729](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38596880729) aprovada no PostgreSQL 17.11, 108 testes sem skips, incluindo concorrência e upgrade. Check, drift, migrate e load_demo duas vezes aprovados. Sem revisão formal/merge; o commit documental seguinte exige nova CI do HEAD final |
+
+Registro PR 01: modelo/evidência, serviço de consentimento, matriz/pré-condições do
+motor, evento de manifestação e relógio de auditoria sem deslocamento de fixture.
+Docs de conceito, motor, roadmap e deploy atualizados (migração/validação/rollback).
+README principal, CONTRIBUTING, AGENTS e workflow revisados, sem alteração
+necessária; exceção empilhada autorizada está descrita aqui e no conceito.
+Não há nova dependência/configuração, endpoint, template, serviço externo ou
+publicação clínica. Onze arquivos relacionados à entrega; bancos/configurações
+preservados por comparação de hashes. Servidores anteriores não reiniciados.
+Smokes browser não executados: nenhum fluxo de UI modificado; regressões das telas,
+autenticação/CSRF, anexos e escopos cobertas pela suíte Django existente.
+O `load_demo` executado pelos testes permaneceu somente no banco temporário.
 
 Dados/configurações locais existentes foram comparados por hash antes/depois e
 permaneceram iguais nos três bancos SQLite encontrados; nenhum `.env` existia
@@ -342,20 +373,17 @@ real de homologação/produção inexistente; é gate futuro, não resultado apr
 
 ## 13. Problemas conhecidos e próximo passo
 
-Consentimento real/versões, ingestão idempotente, processamento/contratos,
+Consentimento real, catálogo jurídico de termos, ingestão idempotente, processamento/contratos,
 resultados estruturados versionados e release clínico não existem. Rastreabilidade
 de fontes/correções é parcial; notas/correções/feedback não registram usuário;
 o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídia
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: aguardar CI real da PR 00 publicada e análise do solicitante
-antes de integrar. Merge e PR 01 NÃO estão autorizados.
-Antes da PR 01, decidir D01–D04 e
-formalizar critérios de aceite. Primeiro recorte recomendado: evidência versionada
-SIMULADA claramente identificada e pré-condições do serviço existente, sem publicar
-ready, alterar acesso a incompletos ou criar transporte/paciente web. Só implementar
-esse recorte após aprovação. Não iniciar PR 01 automaticamente.
+Próximo passo: revisão humana da PR 01 empilhada publicada e confirmação da CI
+do HEAD final após este registro. Nenhum merge autorizado; #8 continua aberta e intacta.
+PR 02 será o próximo incremento, mas não iniciar nesta execução: aprovar D05
+(envelope, origem/autorização, idempotência e ordenação) e escopo antes de codar.
 
 ## 14. Registro obrigatório em cada entrega
 

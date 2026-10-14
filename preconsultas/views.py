@@ -102,7 +102,7 @@ def _decorate_operational_events(consultation):
     events = list(consultation.operational_events.all())
     for event in events:
         event.display_occurred_at = timezone.localtime(event.occurred_at)
-        if event.kind != OperationalEvent.KIND_STATE_CHANGED:
+        if event.kind not in {OperationalEvent.KIND_STATE_CHANGED, OperationalEvent.KIND_CONSENT_RECORDED}:
             event.display_occurred_at += delta
     consultation.display_events = events
     return consultation

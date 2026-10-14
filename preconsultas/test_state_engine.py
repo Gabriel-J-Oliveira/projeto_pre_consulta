@@ -8,7 +8,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Clinic, Consultation, Doctor, OperationalEvent, Patient, ReceptionProfile
+from .consent import record_simulated_consent
+from .models import Clinic, ConsentEvidence, Consultation, Doctor, OperationalEvent, Patient, ReceptionProfile
 from .state_engine import ALLOWED_TRANSITIONS, InvalidTransition, transition
 
 
@@ -50,7 +51,10 @@ class StateEngineTests(TestCase):
                 Consultation.STATUS_AWAITING_PATIENT, Consultation.STATUS_COMPLETED]
         previous = self.case.status
         for target in path:
-            consultation = transition(self.case.pk, target, actor=self.reception)
+            if target == Consultation.STATUS_IN_PROGRESS:
+                record_simulated_consent(self.case.pk, term_version="sim-v1",
+                                         manifestation=ConsentEvidence.ACCEPTED, actor=self.reception)
+            consultation = transition(self.case.pk, target, actor=self.reception, consent_version="sim-v1")
             self.assertEqual(consultation.status, target)
             self.case.refresh_from_db()
             self.assertEqual(self.case.status, target)
@@ -63,7 +67,7 @@ class StateEngineTests(TestCase):
             self.assertGreaterEqual(event.occurred_at, before)
             self.assertLessEqual(event.occurred_at, timezone.now())
             previous = target
-        self.assertEqual(self.case.operational_events.count(), 4)
+        self.assertEqual(self.case.operational_events.count(), 5)
         self.assertEqual(self.case.sources.count(), 0)
         self.assertEqual(self.case.summary_items.count(), 0)
 
@@ -73,9 +77,25 @@ class StateEngineTests(TestCase):
                 with self.subTest(source=source, target=target):
                     # Fixture setup only; production transitions go through the service.
                     Consultation.objects.filter(pk=self.case.pk).update(status=source)
+                    self.case.consent_evidence.all().delete()  # Test fixture, not domain API.
+                    if source == Consultation.STATUS_AWAITING_CONSENT and target in {
+                        Consultation.STATUS_IN_PROGRESS, Consultation.STATUS_CONSENT_DECLINED,
+                    }:
+                        event = OperationalEvent.objects.create(
+                            consultation=self.case, event_key=f"matrix-{source}-{target}",
+                            kind=OperationalEvent.KIND_CONSENT_RECORDED, occurred_at=timezone.now(),
+                            detail="Fixture simulada.", is_simulated=True, origin="local_simulation",
+                            actor=self.doctor_user,
+                        )
+                        ConsentEvidence.objects.create(
+                            consultation=self.case, term_version="sim-v1", operator=self.doctor_user,
+                            occurred_at=event.occurred_at, event=event,
+                            manifestation=(ConsentEvidence.ACCEPTED if target == Consultation.STATUS_IN_PROGRESS
+                                           else ConsentEvidence.DECLINED),
+                        )
                     count = OperationalEvent.objects.count()
                     if target in destinations:
-                        transition(self.case.pk, target, actor=self.doctor_user)
+                        transition(self.case.pk, target, actor=self.doctor_user, consent_version="sim-v1")
                         self.assert_unchanged(self.case, target, count + 1)
                     else:
                         with self.assertRaises(InvalidTransition):
@@ -87,7 +107,10 @@ class StateEngineTests(TestCase):
         url = reverse("preconsultas:detail", args=[self.case.slug])
         for state in [Consultation.STATUS_AWAITING_CONSENT, Consultation.STATUS_IN_PROGRESS,
                       Consultation.STATUS_AWAITING_PATIENT, Consultation.STATUS_COMPLETED]:
-            transition(self.case.pk, state, actor=self.reception)
+            if state == Consultation.STATUS_IN_PROGRESS:
+                record_simulated_consent(self.case.pk, term_version="sim-v1",
+                                         manifestation=ConsentEvidence.ACCEPTED, actor=self.reception)
+            transition(self.case.pk, state, actor=self.reception, consent_version="sim-v1")
             self.assertEqual(self.client.get(url).status_code, 403)
             dashboard = self.client.get(reverse("preconsultas:dashboard"))
             self.assertEqual(dashboard.status_code, 200)
