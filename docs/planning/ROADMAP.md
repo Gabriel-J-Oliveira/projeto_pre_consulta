@@ -35,7 +35,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | --- | --- | --- | --- | --- |
 | PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
 | PR 01 — Domínio/consentimento | Em revisão; PR aberta, sem merge | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9); implementação `3dd3e2cba0d7aa1ab97038ddf487072b821927a9`; registro de publicação em commit subsequente |
-| PR 02 — Entrada unificada | Em execução; validação local | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | Commit/PR ainda não criados neste registro |
+| PR 02 — Entrada unificada | Em revisão; PR aberta, sem merge | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10); implementação `fcd6ac8874988b55e64a9fd1987c605588f3eaf6`; registro de publicação em commit subsequente |
 | PR 03 — Persistência/rastreabilidade | Pendente | PR 02 + escopo longitudinal D06 | `feature/pre-ai-traceability` (proposta) | Não criados |
 | PR 04 — Orquestrador/contrato IA | Pendente | PR 03 + contrato/processamento D07 | `feature/pre-ai-orchestration` (proposta) | Não criados |
 | PR 05 — Revisão médica | Pendente | PR 04 + liberação clínica D04 | `feature/pre-ai-medical-review` (proposta) | Não criados |
@@ -362,6 +362,7 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — PR 01 publicada e CI da implementação | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9), base `chore/prepare-pre-ai`, commit `3dd3e2c` | [CI 38596880729](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38596880729) aprovada no PostgreSQL 17.11, 108 testes sem skips, incluindo concorrência e upgrade. Check, drift, migrate e load_demo duas vezes aprovados. Sem revisão formal/merge; o commit documental seguinte exige nova CI do HEAD final |
 | 14/10/2026 — CI final da base PR 01 | GitHub #9, HEAD `fae081e` | [CI 38597110215](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38597110215) aprovada, PostgreSQL 17.11 e 108 testes sem skips. #8/#9 ainda abertas, sem merge |
 | 14/10/2026 — PR 02 local | `feature/pre-ai-event-ingestion`, base `fae081e` | Check sem problemas, drift sem alterações, migrate --plan revisado. 135 testes em SQLite temporário: 131 aprovados, 4 concorrentes ignorados, 29,121 s. Upgrade 0006→0007 preserva evidência/fontes/resumos/estados; nenhuma entrada inventada. CI da entrega ainda não executada |
+| 14/10/2026 — PR 02 publicada e CI da implementação | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10), base `feature/pre-ai-domain-consent`, commit `fcd6ac8` | [CI 38599542994](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38599542994) aprovada em PostgreSQL 17.11: 135 testes sem skips, incluindo quatro concorrentes e upgrade incremental. Check, drift, migrate e demo duas vezes aprovados. Sem revisão formal/merge; o commit documental subsequente exige nova CI do HEAD final |
 
 Registro PR 02: InboundMessage, ingest_message, contrato sim.v1, simulador e
 migração 0007. Ajuste mínimo do teste de migração da PR 01 para restaurar as
@@ -422,8 +423,8 @@ o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídi
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: publicar PR 02 após validação, conferir CI real do HEAD final e
-aguardar revisão. #8/#9 permanecem abertas e intactas; nenhum merge autorizado.
+Próximo passo: aguardar revisão da PR 02 publicada e conferir CI do HEAD final
+após este registro. #8/#9 permanecem abertas e intactas; nenhum merge autorizado.
 PR 03 depende destas entradas duráveis e de D06 (versionamento/proveniência,
 escopo longitudinal/retenção/armazenamento). Não iniciar PR 03 nesta execução;
 definir seu recorte e decisões pendentes com a equipe antes de implementar.
