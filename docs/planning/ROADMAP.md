@@ -29,7 +29,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | Entrega | Estado | Dependência | Branch proposta/real | PR e commit da entrega |
 | --- | --- | --- | --- | --- |
 | PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
-| PR 01 — Domínio/consentimento | Implementada localmente; aguardando publicação/revisão | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | Commit/PR ainda não criados neste registro |
+| PR 01 — Domínio/consentimento | Em revisão; PR aberta, sem merge | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9); implementação `3dd3e2cba0d7aa1ab97038ddf487072b821927a9`; registro de publicação em commit subsequente |
 | PR 02 — Entrada unificada | Pendente | PR 01 + origem/autorização D05 | `feature/pre-ai-event-ingestion` (proposta) | Não criados |
 | PR 03 — Persistência/rastreabilidade | Pendente | PR 02 + escopo longitudinal D06 | `feature/pre-ai-traceability` (proposta) | Não criados |
 | PR 04 — Orquestrador/contrato IA | Pendente | PR 03 + contrato/processamento D07 | `feature/pre-ai-orchestration` (proposta) | Não criados |
@@ -331,6 +331,7 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — publicação da PR 00 | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8), base `main`, commit documental `d4e0d11` | Nove documentos publicados; PR aberta sem merge. Este registro subsequente não muda runtime; CI do HEAD final deve ser conferida nos checks da PR, sem tratar a execução histórica da base como aprovação |
 | 14/10/2026 — CI da PR 00 conferida antes da PR 01 | GitHub #8, HEAD `47092e6` | [CI 38589941140](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38589941140) aprovada, PostgreSQL 17.11 e 86 testes; PR aberta sem revisão formal nem merge |
 | 14/10/2026 — PR 01 local, após aprovação técnica D01–D04 | `feature/pre-ai-domain-consent`, base `47092e6` | Check sem problemas; drift sem alterações; migrate --plan revisado. Suíte: 108 testes, 106 aprovados e 2 concorrentes ignorados no SQLite, 27,623 s; upgrade 0005→0006 validado em banco temporário, sem backfill. PostgreSQL local não disponível; CI da entrega ainda não executada |
+| 14/10/2026 — PR 01 publicada e CI da implementação | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9), base `chore/prepare-pre-ai`, commit `3dd3e2c` | [CI 38596880729](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38596880729) aprovada no PostgreSQL 17.11, 108 testes sem skips, incluindo concorrência e upgrade. Check, drift, migrate e load_demo duas vezes aprovados. Sem revisão formal/merge; o commit documental seguinte exige nova CI do HEAD final |
 
 Registro PR 01: modelo/evidência, serviço de consentimento, matriz/pré-condições do
 motor, evento de manifestação e relógio de auditoria sem deslocamento de fixture.
@@ -379,8 +380,8 @@ o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídi
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: publicar a PR 01 empilhada após validação completa, aguardar CI
-PostgreSQL e revisão humana. Nenhum merge autorizado; #8 continua aberta e intacta.
+Próximo passo: revisão humana da PR 01 empilhada publicada e confirmação da CI
+do HEAD final após este registro. Nenhum merge autorizado; #8 continua aberta e intacta.
 PR 02 será o próximo incremento, mas não iniciar nesta execução: aprovar D05
 (envelope, origem/autorização, idempotência e ordenação) e escopo antes de codar.
 
