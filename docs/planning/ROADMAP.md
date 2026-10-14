@@ -41,7 +41,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
 | PR 01 — Domínio/consentimento | Em revisão; PR aberta, sem merge | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9); implementação `3dd3e2cba0d7aa1ab97038ddf487072b821927a9`; registro de publicação em commit subsequente |
 | PR 02 — Entrada unificada | Em revisão; PR aberta, sem merge | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10); implementação `fcd6ac8874988b55e64a9fd1987c605588f3eaf6`; registro de publicação em commit subsequente |
-| PR 03 — Persistência/rastreabilidade | Em execução; validação local | PR #10 como base empilhada; D06 técnica aprovada | `feature/pre-ai-traceability` (real) | Commit/PR ainda não criados neste registro |
+| PR 03 — Persistência/rastreabilidade | Em revisão; PR aberta, sem merge | PR #10 como base empilhada; D06 técnica aprovada | `feature/pre-ai-traceability` (real) | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11); implementação `45b485e982247c9f05ddce28777fb081363863a3`; registro de publicação em commit subsequente |
 | PR 04 — Orquestrador/contrato IA | Pendente | PR 03 + contrato/processamento D07 | `feature/pre-ai-orchestration` (proposta) | Não criados |
 | PR 05 — Revisão médica | Pendente | PR 04 + liberação clínica D04 | `feature/pre-ai-medical-review` (proposta) | Não criados |
 | PR 06 — Testes/handoff | Pendente | PR 05 + critérios operacionais D08 | `chore/pre-ai-handoff` (proposta) | Não criados |
@@ -394,6 +394,7 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — PR 02 publicada e CI da implementação | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10), base `feature/pre-ai-domain-consent`, commit `fcd6ac8` | [CI 38599542994](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38599542994) aprovada em PostgreSQL 17.11: 135 testes sem skips, incluindo quatro concorrentes e upgrade incremental. Check, drift, migrate e demo duas vezes aprovados. Sem revisão formal/merge; o commit documental subsequente exige nova CI do HEAD final |
 | 14/10/2026 — CI final da base PR 02 | GitHub #10, HEAD `76818a0` | [CI 38599762925](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38599762925) aprovada, PostgreSQL 17.11 e 135 testes sem skips; #8/#9/#10 abertas, bases e SHAs preservados |
 | 14/10/2026 — PR 03 local, D06 aprovada | `feature/pre-ai-traceability`, base `76818a0` | Check/drift aprovados, migrate --plan revisado; 157 testes SQLite temporário, 151 aprovados e 6 concorrentes ignorados, 31,417 s. Upgrade 0007→0008 e seed/reset em banco de testes preservam legado/entradas/snapshots sem origem inventada. CI da entrega ainda não executada |
+| 14/10/2026 — PR 03 publicada e CI da implementação | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11), base `feature/pre-ai-event-ingestion`, commit `45b485e` | [CI 38606894698](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38606894698) aprovada em PostgreSQL 17.11: 157 testes sem skips, seis concorrentes e upgrade incremental. Check/drift/migrate/demo duas vezes aprovados. Sem revisão formal/merge; commit documental subsequente exige nova CI do HEAD final |
 
 Registro PR 03: SourceItem com vínculo opcional de origem e imagem/simulação,
 SummaryRevision/Source, traceability.py, migração 0008 e testes. Template recebeu
@@ -469,8 +470,8 @@ o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídi
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: publicar PR 03 após validação local, conferir CI PostgreSQL real
-do HEAD final e aguardar revisão. #8/#9/#10 intactas; nenhum merge autorizado.
+Próximo passo: aguardar revisão da PR 03 publicada e confirmar CI do HEAD final
+após este registro. #8/#9/#10 intactas; nenhum merge autorizado.
 Tecnicamente há base para definir D07/PR 04: contrato, payloads/provedor fake,
 erros/versões/limites e responsabilidades ainda precisam de aprovação. Não iniciar
 PR 04 automaticamente. Integração do versionamento às ações médicas fica na PR 05.
