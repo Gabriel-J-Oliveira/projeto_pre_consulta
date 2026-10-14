@@ -449,3 +449,84 @@ class SummaryRevisionSource(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Referências de revisão devem ser preservadas.")
+
+
+class AIExecution(models.Model):
+    """Private technical processing, NEVER a clinical presentation or release."""
+    consultation = models.ForeignKey(Consultation, on_delete=models.PROTECT, related_name="ai_executions")
+    operation = models.CharField(max_length=20)
+    contract_version = models.CharField(max_length=20)
+    provider_id = models.CharField(max_length=120)
+    provider_version = models.CharField(max_length=120)
+    context_id = models.CharField(max_length=64)
+    identity = models.CharField(max_length=64, unique=True)
+    request = models.JSONField()
+    status = models.CharField(max_length=12, default="running")
+    result = models.JSONField(null=True, blank=True)
+    error_code = models.CharField(max_length=30, blank=True)
+    created_at = models.DateTimeField(editable=False)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                   related_name="ai_executions")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(operation__in=["next_question", "extract_structured", "build_summary"]),
+                                   name="ai_execution_operation"),
+            models.CheckConstraint(condition=models.Q(contract_version="ai.v1"), name="ai_execution_contract"),
+            models.CheckConstraint(condition=models.Q(status__in=["running", "succeeded", "failed", "obsolete"]),
+                                   name="ai_execution_status"),
+            models.CheckConstraint(condition=~models.Q(status="succeeded") | models.Q(result__isnull=False),
+                                   name="ai_execution_success_result"),
+        ]
+
+
+class AIAttempt(models.Model):
+    execution = models.ForeignKey(AIExecution, on_delete=models.PROTECT, related_name="attempts")
+    number = models.PositiveSmallIntegerField()
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="ai_attempts")
+    started_at = models.DateTimeField(editable=False)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=12, default="running")
+    error_code = models.CharField(max_length=30, blank=True)
+    # Only structurally validated output; malformed/raw provider errors are discarded.
+    result = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["number"]
+        constraints = [
+            models.UniqueConstraint(fields=["execution", "number"], name="ai_attempt_number"),
+            models.CheckConstraint(condition=models.Q(number__gte=1, number__lte=3), name="ai_attempt_bounds"),
+            models.CheckConstraint(condition=models.Q(status__in=["running", "succeeded", "failed", "obsolete"]),
+                                   name="ai_attempt_status"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exclude(status="running").exists():
+            raise ValidationError("Tentativas finalizadas devem ser preservadas.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Tentativas técnicas devem ser preservadas.")
+
+
+class AIExecutionSource(models.Model):
+    execution = models.ForeignKey(AIExecution, on_delete=models.PROTECT, related_name="source_references")
+    source = models.ForeignKey(SourceItem, on_delete=models.PROTECT, related_name="ai_references")
+    version = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["execution", "source"], name="ai_execution_source_unique")]
+
+    def clean(self):
+        if self.execution.consultation_id != self.source.consultation_id:
+            raise ValidationError("Referência técnica fora da consulta.")
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Referência técnica deve ser preservada.")
+        self.clean()
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Referências técnicas devem ser preservadas.")

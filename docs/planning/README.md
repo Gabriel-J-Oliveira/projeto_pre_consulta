@@ -17,6 +17,11 @@ para o recorte técnico fictício do prompt; branch `feature/pre-ai-traceability
 baseada em PR #10, SHA `76818a0acd49f72bda518ca65ea6e43beb306bc5`. Sem merge.
 Não contém credenciais, dados pessoais, banco local ou documentos de pacientes.
 
+Atualização PR 04: D07 aprovada tecnicamente pelo solicitante em 14/10/2026,
+exclusivamente fictícia; `feature/pre-ai-orchestration`, base PR #11 no SHA
+`6f91164ba8cb66c97c4a6daff159d6bf6fbffdb3`. Contrato e handoff em revisão,
+não aprovados só por publicação. Nenhum merge, IA real ou início de PR 05.
+
 ## 1. Produto e estágio atual
 
 O objetivo é apoiar a preparação de consultas médicas: a recepção registra uma
@@ -89,6 +94,9 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
 - `SummaryRevision` e `SummaryRevisionSource` (PR 03): snapshots explícitos do
   item de resumo existente e suas fontes, com revisão, chave lógica, momento e
   operador da captura. Não geram resumo nem definem payload de resultado da IA.
+- `AIExecution`, `AIAttempt`, `AIExecutionSource` (PR 04): execução técnica privada,
+  tentativas explícitas e referência fonte/versão, independentes de SummaryRevision.
+  Request e resultado validado permanecem privados; não aparecem no Admin/UI.
 
 Migrações `0001`–`0003` preservam o protótipo original; `0004` acrescenta vínculos
 internos; `0005_operational_state_engine` acrescenta metadados opcionais de eventos
@@ -99,6 +107,8 @@ e tipo de evento, sem backfill de manifestações ou alteração de estados lega
 converter fontes/resumos existentes ou criar mensagens para registros históricos.
 `0008_source_provenance_summary_revisions` acrescenta vínculos opcionais às fontes,
 escolhas de imagem/simulação e tabelas de snapshots/referências. Sem backfill.
+`0009_ai_orchestration` cria somente as três tabelas técnicas/constraints, sem
+backfill de execuções, alteração de domínio ou migração de dados legados.
 
 ## 4. Autenticação e autorização são separadas
 
@@ -315,8 +325,9 @@ entrega contexto/fontes autorizados e versionados, por um contrato independente
 do provedor; o adaptador retorna resultado estruturado com versão e proveniência.
 O backend valida e persiste ou rejeita, registrando falha/tentativa sem liberar
 conteúdo clínico. Retentativa/execução técnica não é estado operacional duplicado.
-DTOs, assinatura do provider, payload JSON, filas, limites e formatos finais NÃO
-estão definidos aqui. FakeAIProvider ainda não foi implementado.
+Na auditoria inicial DTOs e fake não existiam. A branch PR 04 agora implementa
+`ai.v1`, Protocol/FakeAIProvider e orquestrador síncrono, sem filas. Referência
+normativa única: [contrato IA](../ai/README.md); revisão/aprovação ainda pendentes.
 
 Após aprovação do contrato da PR 04 e seus artefatos de conformidade, a IA pode
 ser desenvolvida independentemente, sem aguardar PR 06; o backend continua com
@@ -345,7 +356,7 @@ Evidências apontam para arquivos revisados na base `1e199b4`:
 | Fontes, vínculo item–fonte e correções | Parcial; proveniência de novas fontes na PR 03 | Fonte materializada aponta para InboundMessage; legados sem vínculo inventado, fixtures atualizáveis. Captura de correções explícita, não pipeline integrado |
 | Resultados estruturados e histórico longitudinal | Snapshots/histórico restrito na PR 03; pipeline IA ausente | SummaryRevision captura estrutura atual, não schema de IA. Histórico somente ready do médico atribuído/clínica; patient_id não amplia escopo |
 | Mídias privadas | Parcial/demonstrativo | Mapeamento local + FileResponse autorizado, teste de bytes fictícios; sem upload, retenção ou storage privado provisionado |
-| Orquestrador/contratos/FakeAIProvider | Ausente | Não há camada de provedor ou processamento/retentativa; começar com contrato/fake depois da persistência |
+| Orquestrador/contratos/FakeAIProvider | Simulado na branch PR 04; ausente na main auditada | ai.v1/port/fake, execução privada/retry/obsolescência; sem publicação ou modelo real |
 | Revisão médica | Parcial | Views/templates de notas/correções/feedback existem; sem ator registrado nesses modelos, versionamento de saída/publicação ou controle completo de concorrência |
 | Pronta versus concluída | Fronteira preservada, liberação futura ausente | Views só abrem ready; motor não produz ready; fixtures e ORM podem definir estado, não há serviço de publicação validada |
 | PostgreSQL, SQLite explícito, migrações | Implementado | `database.py`, requirements, `0001`–`0005`; base validada em CI, sem transferência automática de dados |
@@ -384,7 +395,8 @@ manter o README da raiz como navegação. Não manter guias operacionais conflit
 nem declarar conclusão/CI por configuração ou intenção. Publicação da PR 01
 empilhada foi autorizada; a execução atual autoriza também PR 02 empilhada,
 sem merge. Posteriormente, D06 e a implementação/publicação da PR 03 empilhada foram
-autorizadas expressamente; merge e PR 04 não estão autorizados nesta execução.
+autorizadas expressamente. Posteriormente o prompt PR 04 aprovou D07 técnica e
+implementação/publicação empilhada; merge e PR 05 não estão autorizados.
 
 ## 16. Contrato de ingestão PR 02 — D05 restrita à simulação
 
@@ -532,3 +544,38 @@ restauram valores/correções. Fontes legadas ainda podem ser atualizadas pelo s
 não tratá-las como evidência imutável de produção. SQL/QuerySet/bulk privilegiados
 podem contornar validações de aplicação (incluindo integridade entre consultas);
 FKs/unicidades não são WORM nem políticas completas de retenção.
+
+## 18. Orquestração PR 04 — D07 técnica fictícia aprovada
+
+`ai_orchestration.execute(consultation_id, operation, actor=medico, provider=fake,
+retry=False)` valida médico ativo atual/consulta/clínica, estado permitido por
+operação e último aceite simulado consistente. Seleciona somente fontes da consulta
+e valida sua origem; todas entram no contexto versionado, inclusive conteúdo de
+legados mutáveis. Não inclui nome/telefone/patient_id no DTO.
+
+Reserva sob lock da consulta/fontes PostgreSQL com identity única, cria tentativa
+e referências e encerra transação. Chama port fora do lock; nova transação revalida
+escopo/estado/aceite/contexto antes de persistir resultado. Provider não autentica
+nem publica. Retorno é só ExecutionReceipt com IDs/status/contagem/código sanitizado.
+Recepção/admin sem médico continuam negados; nenhuma falha altera status operacional.
+
+AIExecution/AIAttempt/AIExecutionSource mantêm request privado, contexto e provedor
+versionados, fontes/versões, tentativas, resultado validado ou código sanitizado e
+horários/atores. Não reutilizam SummaryRevision nem escrevem SummaryItem/Correction.
+Execução mesma identidade é idempotente; retry explícito só transitório/indisponível,
+máximo 3 tentativas. Concorrente recebe running, sem duplicar resultado aceito.
+Mudança material cria outra execução; obsoletos são preservados, nunca consumidos
+como atuais. `current_result` exige médico/clínica/ready e revalida contexto, output
+e referências no momento de uso; completed continua sem leitura/publicação.
+
+FakeAIProvider determinístico implementa três operações e cenários inválido/
+indisponível/transitório, sem dependências/rede. Cita textos fictícios literalmente,
+não inventa análise de mídia, diagnóstico ou transcrição. Contrato `ai.v1`, exemplos,
+limites de operação/estado, port e testes independentes de Django estão em
+[docs/ai](../ai/README.md), sem duplicar referência operacional/roadmap.
+
+Limites: capturas técnicas privadas não integram UI/publicação; não há timeout,
+fila ou recuperação automática de reserva running após crash/falha finalização.
+Locks/constraints não são WORM/RLS contra ORM/SQL privilegiados ou certificação
+semântica clínica. D08 e recuperação produtiva permanecem pendentes. IA independente
+só após aprovação humana do [handoff](../ai/handoff.md), sem aguardar PR 05/06.

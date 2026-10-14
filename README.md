@@ -12,12 +12,15 @@ Referências oficiais da trilha Pré-IA:
 - [Conceito e auditoria técnica](docs/planning/README.md).
 - [Ambientes, instalação, testes e deploy](docs/deploy.md).
 - [Roadmap 00–06 e histórico de execução](docs/planning/ROADMAP.md).
+- [Contrato técnico simulado ai.v1](docs/ai/README.md) e [handoff para IA](docs/ai/handoff.md).
 - [Política de colaboração/documentação](CONTRIBUTING.md) e [instruções do agente](AGENTS.md).
 
-PR 00 é preparação documental, com publicação autorizada para revisão; não implementa a trilha
-01–06 nem integra IA/WhatsApp. A próxima entrega depende de aprovação humana.
+PR 00 é preparação documental. A cadeia empilhada PRs 01–04 implementa partes
+simuladas da trilha, ainda em revisão, sem merge ou IA/WhatsApp reais. Contrato
+e handoff da PR 04 precisam de aprovação humana; CI/publicação não a substituem.
 
-O código atual está integrado em `main`. O [registro da migração de repositório](docs/repository-migration.md)
+A base histórica está integrada em `main`; os incrementos empilhados ainda não.
+O [registro da migração de repositório](docs/repository-migration.md)
 documenta as branches históricas, os commits preservados e a correspondência das PRs.
 
 ## Instalação local
