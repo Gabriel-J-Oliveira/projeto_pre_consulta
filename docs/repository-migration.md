@@ -11,12 +11,17 @@ integrou o projeto completo em `main`, no merge
 `be755829a83b54fae4b5c3bb16e8e6110c904785`. Sua CI real passou com PostgreSQL
 17.11 e 86 testes. O commit de implementação foi `2b062fb`.
 
-Uma segunda PR conecta o histórico anterior ao atual por um merge de históricos
-independentes. A estratégia `ours` conserva a árvore atual: os antigos README,
+A [PR #7](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/7)
+conectou o histórico anterior ao atual, no merge
+`1e199b4577d8a6c64b30c3744d4bea4adfd308bf`, por um merge de históricos
+independentes. A estratégia `ours` conservou a árvore atual: os antigos README,
 URLs e formatação não substituem a versão atualizada do novo repositório.
 Os nove commits antigos mantêm seus SHAs/autoria e ficam alcançáveis pela história
 integrada; não são recriados por cherry-pick nem reescritos por rebase.
-Somente a documentação da migração é acrescentada nesta etapa.
+Somente a documentação da migração foi alterada nessa etapa. A
+[CI desse merge](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38150293707)
+passou com PostgreSQL 17.11 e 86 testes. Esta é evidência histórica da base,
+não de incrementos novos. Referência conferida novamente em 14/10/2026 na PR 00.
 
 O histórico foi inspecionado antes da publicação: não foram encontrados bancos,
 `.env` reais, ambientes virtuais, artefatos, arquivos clínicos binários ou os
@@ -57,8 +62,9 @@ Para esses detalhes, consultar as PRs originais vinculadas.
 ## Fluxo daqui para frente
 
 Use somente `Gabriel-J-Oliveira/projeto_pre_consulta` como destino de novos cards.
-Atualize `main` e crie branches curtas por tarefa. README operacional na raiz;
-contexto autossuficiente para planejamento em `docs/planning/README.md`.
+Atualize `main` e crie branches curtas por tarefa. README da raiz é o índice;
+o guia operacional é [docs/deploy.md](deploy.md), e o contexto autossuficiente
+para planejamento fica em [docs/planning/README.md](planning/README.md).
 
 No momento desta migração, a nova `main` não tinha proteção nem rulesets aplicáveis.
 O solicitante autorizou explicitamente os merges; nenhuma regra foi removida ou

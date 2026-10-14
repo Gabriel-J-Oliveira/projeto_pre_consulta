@@ -7,31 +7,26 @@ Para planejamento em outro chat de IA, use o arquivo autossuficiente
 [Contexto do projeto](docs/planning/README.md), com arquitetura, funcionalidades,
 permissões, estados, cadeia de branches e decisões ainda pendentes.
 
+Referências oficiais da trilha Pré-IA:
+
+- [Conceito e auditoria técnica](docs/planning/README.md).
+- [Ambientes, instalação, testes e deploy](docs/deploy.md).
+- [Roadmap 00–06 e histórico de execução](docs/planning/ROADMAP.md).
+- [Política de colaboração/documentação](CONTRIBUTING.md) e [instruções do agente](AGENTS.md).
+
+PR 00 é preparação documental, com publicação autorizada para revisão; não implementa a trilha
+01–06 nem integra IA/WhatsApp. A próxima entrega depende de aprovação humana.
+
 O código atual está integrado em `main`. O [registro da migração de repositório](docs/repository-migration.md)
 documenta as branches históricas, os commits preservados e a correspondência das PRs.
 
 ## Instalação local
 
-Requisitos: Python 3.14 e PostgreSQL 17 (a versão usada na CI). O driver
-`psycopg[binary]` é instalado pelo `requirements.txt`. SQLite permanece
-disponível apenas por seleção explícita para desenvolvimento sem PostgreSQL.
-
-```powershell
-git clone https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta.git
-Set-Location projeto_pre_consulta
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-```
-
-Edite `.env` e substitua `DJANGO_SECRET_KEY` por uma chave local aleatória. O
-projeto falha com uma mensagem clara se chave, modo debug ou hosts permitidos não
-estiverem configurados. `DEBUG=True` é apenas para desenvolvimento local.
-
-Cada desenvolvedor deve manter seu próprio `.env` e banco local. Esses
-arquivos, ambientes virtuais, caches, logs e mídias locais estão ignorados pelo Git
-e não devem ser compartilhados ou enviados ao repositório.
+Python 3.14 e PostgreSQL 17 são as referências atuais; SQLite é uma opção local
+explícita. Siga a [instalação e configuração de ambiente](docs/deploy.md), que é
+a fonte única dos procedimentos e variáveis suportadas. Cada desenvolvedor mantém
+seu próprio `.env` e banco, não publicados. Não sobrescrever configurações ou
+dados locais para repetir o bootstrap. O ambiente continua exclusivamente fictício.
 
 ## Estrutura e decisão de modularização
 
@@ -56,65 +51,16 @@ quando suas funcionalidades entrarem no escopo. Não há processamento real de I
 
 ## Configuração do banco
 
-`DB_BACKEND=postgresql` é o padrão. Preencha no `.env` `DB_HOST`,
-`DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` com seu ambiente local.
-São campos separados, sem URLs contendo credenciais. Variáveis obrigatórias
-ausentes ou porta inválida impedem a inicialização. Variáveis definidas no
-processo têm precedência sobre o `.env`.
-
-Em um PostgreSQL local disponível, crie um papel e um banco novos, exclusivos
-do protótipo; não reutilize um banco com dados existentes. Exemplo com as
-ferramentas PostgreSQL, autenticando-se como administrador:
-
-```powershell
-createuser --host 127.0.0.1 --port 5432 --username seu_administrador --pwprompt --createdb preconsulta_dev
-createdb --host 127.0.0.1 --port 5432 --username seu_administrador --owner preconsulta_dev preconsulta_local
-```
-
-Escolha seus próprios nomes no lugar dos exemplos e use-os no `.env`.
-`--pwprompt` solicita a senha interativamente, sem colocá-la no comando.
-Nenhuma conta ou senha é criada pelo projeto. `CREATEDB` é necessário apenas
-para o usuário de desenvolvimento que executa os testes Django, pois eles
-criam um banco temporário; não conceda essa permissão à aplicação de produção.
-
-Se Docker já estiver disponível, crie um arquivo local ignorado
-`.env.postgres` com `POSTGRES_DB`, `POSTGRES_USER` e
-`POSTGRES_PASSWORD` escolhidos por você. Para uma instância descartável:
-
-```powershell
-docker run --name preconsulta-dev-pg --rm -d --env-file .env.postgres -p 127.0.0.1:5433:5432 postgres:17
-```
-
-O `.env` Django usa `DB_HOST=127.0.0.1`, `DB_PORT=5433` e os mesmos
-banco/usuário/senha. O container não usa volumes: `docker stop preconsulta-dev-pg`
-descarta seus dados. Nenhum serviço é instalado pelo projeto.
-
-Para trabalhar sem PostgreSQL, escolha `DB_BACKEND=sqlite` no `.env` ou no
-ambiente. Somente nessa opção o banco é `db.sqlite3` na raiz da cópia local;
-variáveis PostgreSQL não são exigidas. Não existe fallback silencioso.
-SQLite não é copiado ou convertido automaticamente: o PostgreSQL começa
-com `migrate` e os dados fictícios de `load_demo`. Transferência de registros
-locais existentes deve ser planejada separadamente antes da troca de uma
-instância em uso.
-
-Nesta máquina, a instância do worktree na porta 8001 usa `DB_BACKEND=sqlite`
-explicitamente, preservando banco e contas da validação. PostgreSQL/Docker
-local não estavam disponíveis; a validação real PostgreSQL depende de uma
-instância disponível ou da CI. Consulte a execução correspondente ao commit
-para confirmar o resultado; a configuração do workflow não comprova aprovação.
+PostgreSQL é padrão, sem fallback; SQLite exige `DB_BACKEND=sqlite`. Não há
+conversão automática nem cópia de bancos pelo Git. Preparação do PostgreSQL,
+variáveis e migrações estão em [deploy](docs/deploy.md); evidências por backend/SHA
+estão no [ROADMAP](docs/planning/ROADMAP.md). Banco local da validação é preservado.
 
 ## Preparar e iniciar
 
-```powershell
-python manage.py migrate
-python manage.py load_demo
-python manage.py createsuperuser
-python manage.py runserver 127.0.0.1:8000
-```
-
-`createsuperuser` solicita as credenciais no terminal e armazena somente o hash da
-senha pelo mecanismo nativo do Django. Não existe usuário ou senha padrão. Depois do
-primeiro acesso, administradores podem cadastrar outros usuários internos pelo admin.
+Use a [inicialização demonstrativa](docs/deploy.md), distinguindo banco novo de
+validação já existente. Não há usuários/senhas padrão; configure os vínculos
+abaixo após criar uma conta explicitamente. `runserver` não é produção.
 
 ## Vínculos e permissões internos
 
@@ -139,24 +85,9 @@ A migração adiciona campos/tabela de vínculos sem apagar os registros anterio
 Após migrar, configure os vínculos antes de usar as telas. `load_demo` não cria
 usuários nem concede acesso.
 
-Para executar duas instâncias no mesmo host, use bancos em diretórios separados,
-portas distintas e nomes de cookies distintos no ambiente da segunda instância:
-`DJANGO_SESSION_COOKIE_NAME=preconsulta_8001_session` e
-`DJANGO_CSRF_COOKIE_NAME=preconsulta_8001_csrf`. Cookies não são isolados por porta.
-Os smokes aceitam `SMOKE_BASE_URL` e credenciais locais via ambiente. Execute
-os smokes médico/pré-consulta com uma conta ligada ao médico e o smoke de recepção
-com uma conta ligada às clínicas. `permissions_smoke.cjs` aceita `SMOKE_ROLE`
-igual a `admin` ou `reception` para conferir bloqueios no navegador.
-
-Acesse:
-
-- Painel médico: <http://127.0.0.1:8000/medico/painel/>
-- Pré-consulta pronta: <http://127.0.0.1:8000/medico/pre-consultas/demo/>
-- Operação da recepção: <http://127.0.0.1:8000/recepcao/pre-consultas/>
-
-`load_demo` pode ser executado novamente para restaurar os dados-base fictícios:
-ele atualiza o caso conhecido, não duplica registros e não apaga notas, correções,
-feedback nem dados não relacionados. Não é necessário apagar o banco.
+Rotas, execução de instâncias separadas, cookies, configuração dos smokes e
+limites de `load_demo` estão em [deploy](docs/deploy.md). Consulte essa referência
+operacional antes de executar comandos sobre um banco de validação existente.
 
 Os horários da agenda demonstrativa usam deslocamentos em relação à data local
 configurada no Django. Assim, para a médica demonstrativa, cinco casos permanecem
@@ -193,12 +124,9 @@ manual no shell. Não há endpoint ou integração real para mudanças de estado
 - A autenticação e os vínculos são verificados no servidor; o endurecimento para
   produção e a política definitiva de elegibilidade de casos continuam pendentes.
 
-Para reiniciar somente as interações do protótipo (notas, correções e feedback),
-mantendo o caso, suas fontes e quaisquer dados não relacionados:
-
-```powershell
-python manage.py load_demo --reset-interactions
-```
+Para reiniciar interações do protótipo, consulte os limites de seed/reset em
+[deploy](docs/deploy.md). Essa operação pode apagar notas, correções e feedback
+do caso-base e só deve ser feita mediante pedido explícito, não para validar esta PR.
 
 ## PDFs e MP3 locais
 
@@ -213,20 +141,10 @@ fictício — sem alegar processamento dos arquivos ausentes.
 
 ## Verificação
 
-```powershell
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py test
-```
-
-Os testes usam um banco temporário separado no backend selecionado, sem alterar
-o banco local. A suíte verifica idempotência de `load_demo`, preservação de
-registros não relacionados e vínculos explícitos.
-
-A CI é configurada para PRs de qualquer branch-base, com PostgreSQL 17
-descartável. Executa `check`, verificação de migrações, `migrate`, duas chamadas
-de `load_demo` e todos os testes. Os valores no workflow são exclusivamente
-do serviço descartável de CI. Configurar o workflow não confirma sua aprovação.
+Comandos, CI e limites dos smokes estão em [deploy](docs/deploy.md). A suíte
+usa banco temporário; a CI usa PostgreSQL 17. Registre resultados reais no
+[ROADMAP](docs/planning/ROADMAP.md), distinguindo execução local e checks GitHub.
+Não usar configuração do workflow como prova de aprovação ou de prontidão para produção.
 
 ## Colaboração
 
