@@ -3,8 +3,10 @@
 O serviço `preconsultas.state_engine.transition` centraliza as transições.
 Reutiliza `Consultation.status`: não há segundo campo de estado. Não integra
 LLM, WhatsApp, transcrição nem armazenamento externo. Não há endpoint público
-ou botões de transição; a validação manual é feita no shell autenticado pelo
-usuário explícito passado ao serviço, com origem `local_simulation`.
+ou botões de transição; a validação manual é feita no shell administrativo, com
+User ativo explícito passado ao serviço e origem `local_simulation`. O serviço
+valida os vínculos desse actor, não autentica uma sessão no shell nem comprova
+a identidade/consentimento do paciente. O shell requer acesso administrativo local.
 
 ## Estados e compatibilidade
 

@@ -18,6 +18,14 @@ Liste os comandos e passos usados para verificar a alteração.
 - [ ] Alterações visuais ou funcionais foram descritas e validadas.
 - [ ] Migrações necessárias foram incluídas e revisadas.
 
+## Documentação contínua
+
+- [ ] Conceito/arquitetura revisados e atualizados conforme impacto.
+- [ ] Deploy revisado e atualizado para dependências/configuração/migrações/operação.
+- [ ] ROADMAP atualizado com branch, PR/SHA existentes, testes reais, decisões e próximo passo.
+- [ ] README principal mantém links coerentes; ausência de alteração conceitual/operacional foi justificada.
+- [ ] Não declara conclusão, infraestrutura ou CI sem evidência.
+
 ## Pendências ou decisões
 
 Registre riscos, limitações e decisões que ainda dependem da equipe. Escreva

@@ -1,9 +1,11 @@
 # Contexto do projeto de pré-consulta para planejamento com IA
 
-Snapshot técnico de **11/10/2026**, preparado a partir do código e da documentação
+Referência conceitual oficial, auditada em **14/10/2026** sobre a base
+`1e199b4577d8a6c64b30c3744d4bea4adfd308bf`, preparada a partir do código e da documentação
 do repositório público `Gabriel-J-Oliveira/projeto_pre_consulta`. Este arquivo é
 autossuficiente para ser anexado a um chat de planejamento. Descreve o que existe,
-o que é demonstrativo e o que ainda depende de decisão; não é um backlog aprovado.
+o que é demonstrativo e o que ainda depende de decisão. A sequência Pré-IA foi
+solicitada pela equipe; suas regras específicas e interfaces ainda exigem aprovação.
 Não contém credenciais, dados pessoais, banco local ou documentos de pacientes.
 
 ## 1. Produto e estágio atual
@@ -163,45 +165,17 @@ deslocamento de datas das fixtures. Eventos antigos preservam seus dados e não
 ganham autoria inventada. Não há rota HTTP ou botão de transição nesta etapa;
 a validação manual está em `docs/state-engine.md`.
 
-## 8. Configuração e validação técnica
+## 8. Operação e evidências técnicas
 
-O README da raiz contém instalação detalhada. Cada desenvolvedor tem seu próprio
-ambiente, `.env`, chave local e banco; nada disso é publicado. Variáveis:
-`DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DB_BACKEND`,
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DEMO_MEDIA_ROOT` e,
-para instâncias paralelas, nomes distintos de cookies de sessão/CSRF.
+[docs/deploy.md](../deploy.md) é a referência única para instalação, variáveis
+suportadas, PostgreSQL/SQLite, migrações, testes e preparação de homologação.
+Cada desenvolvedor tem seu próprio `.env` e banco, não publicados. Não existe
+fallback silencioso, conversão automática de banco nem implantação confirmada.
 
-PostgreSQL é o padrão; não há fallback silencioso. SQLite requer
-`DB_BACKEND=sqlite`. Não existe conversão automática do SQLite para PostgreSQL.
-Migrações preservam histórico e dados; transferência entre bancos é outra tarefa.
-
-Com o ambiente configurado, executar:
-
-```text
-python manage.py migrate
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py test
-```
-
-Para ambiente demonstrativo novo: `python manage.py load_demo`, criação explícita
-de conta via `createsuperuser`, configuração dos vínculos no Admin e `runserver`.
-`load_demo` é idempotente e não cria usuários. Restaura fixtures e estados-base;
-não deve ser usado para validar transições em registros que se deseja preservar.
-Os testes Django usam banco temporário separado do banco de validação.
-
-A suíte atual contém 86 testes, incluindo autenticação/CSRF, permissões, cadastro,
-rollback, matriz de transições, auditoria e compatibilidade. Na etapa anterior,
-86 testes passaram em SQLite; em 11/10/2026, `check`, verificação de migrações
-e os 86 testes foram executados novamente e aprovados antes do commit local.
-Smokes existentes cobrem telas médicas, recepção, bloqueios e escolha de paciente
-em desktop/mobile. Smokes de navegador usam contas explicitamente vinculadas.
-
-A CI aceita PRs de qualquer base e usa PostgreSQL 17 descartável: instalação,
-`check`, migrações pendentes, `migrate`, `load_demo` duas vezes e testes.
-As PRs #3 e #4 do repositório anterior tiveram CI aprovada antes deste snapshot; isso não valida o novo
-commit do motor. Só uma execução real correspondente ao SHA confirma aprovação.
-PostgreSQL não foi validado localmente nas etapas anteriores.
+Resultados por entrega e backend ficam no [ROADMAP](ROADMAP.md), não são inferidos
+da configuração do workflow. A base tem 86 testes, cobrindo autenticação/CSRF,
+permissões, cadastro, rollback e estados. A CI real da `main` de referência passou
+com PostgreSQL 17.11 e 86 testes em 11/10/2026; isso não é uma execução da PR 00.
 
 ## 9. Colaboração, branches e publicação
 
@@ -268,3 +242,108 @@ documento é um snapshot, não sincronização automática do código ou do Noti
 Não envie `.env`, SQLite, senhas, tokens, documentos privados ou dados de pacientes
 ao chat. Mais contexto técnico pode ser obtido no README da raiz,
 `docs/state-engine.md`, testes e arquivos do domínio — sempre sem segredos.
+
+## 12. Divisão de responsabilidades e limites da trilha Pré-IA
+
+O produto-alvo é SaaS Pré Consulta. “Lume Saúde” permanece a identidade visual
+demonstrativa existente; PR 00 não faz rebranding ou muda telas. Multi-clínica
+hoje significa vínculos e filtros no servidor, não um novo modelo de tenant
+ou isolamento por schemas PostgreSQL. Não redesenhar essa arquitetura por suposição.
+
+Desenvolvedor de backend (solicitante): domínio/regras, consentimento/estados,
+entrada unificada, persistência/versionamento/rastreabilidade, orquestração
+determinística, contratos de integração, provedor fictício, consumo/publicação
+e revisão médica, testes, segurança, infraestrutura e documentação.
+
+Outro desenvolvedor (IA): modelos reais, entrevista adaptativa/perguntas,
+extração/estruturação, resumos/pontos de atenção, prompts e validação semântica
+dos resultados. O backend também valida formato, versão, fontes, contexto,
+idempotência e autorização; essas garantias não são delegadas à IA.
+
+Sprint posterior: WhatsApp Cloud API, webhooks/mensagens reais e recebimento de
+mídia. Agora, nenhuma chamada real a LLM, WhatsApp, transcrição ou storage externo.
+Não implementar portal de pacientes, apps vazios de agendamento/prontuário,
+dados reais ou substituição ampla de tecnologias dentro desta preparação.
+
+## 13. Fluxo-alvo e interface de IA — planejamento, não implementação
+
+Fluxo-alvo da trilha: cadastro → evidência versionada de consentimento → entrada
+de mensagens/eventos simulados → fontes preservadas e dados versionados →
+orquestração determinística/FakeAIProvider → validação de resultado → publicação
+clínica controlada → revisão médica/correções/feedback. Gates e dependências
+ficam no [ROADMAP](ROADMAP.md). Hoje o cadastro e o simulador de estados existem;
+coleta/consentimento reais, pipeline e publicação de resultados novos não existem.
+
+Interface prevista (a acordar com o desenvolvedor de IA em PR 04): o backend
+entrega contexto/fontes autorizados e versionados, por um contrato independente
+do provedor; o adaptador retorna resultado estruturado com versão e proveniência.
+O backend valida e persiste ou rejeita, registrando falha/tentativa sem liberar
+conteúdo clínico. Retentativa/execução técnica não é estado operacional duplicado.
+DTOs, assinatura do provider, payload JSON, filas, limites e formatos finais NÃO
+estão definidos aqui. FakeAIProvider ainda não foi implementado.
+
+Após aprovação do contrato da PR 04 e seus artefatos de conformidade, a IA pode
+ser desenvolvida independentemente, sem aguardar PR 06; o backend continua com
+o fake. Critérios e responsabilidades constam no [ROADMAP](ROADMAP.md).
+
+A IA não gerencia autenticação, escopos médico/clínica, consentimento, status
+autoritativo, persistência direta, entrega de mensagens ou liberação `ready`.
+Resultado gerado não constitui diagnóstico nem decisão de publicação. Esses
+limites devem orientar contrato e testes futuros, não criar endpoints nesta PR 00.
+
+## 14. Auditoria técnica da base: reutilizar, não reimplementar
+
+Auditoria de 14/10/2026; classificação por recurso, não certificação de produção.
+Evidências apontam para arquivos revisados na base `1e199b4`:
+
+| Recurso | Situação | Evidência e lacuna |
+| --- | --- | --- |
+| Apps e composição | Implementado | `medprep`, `accounts`, `preconsultas`, URLs/views/templates por app; preservar limites |
+| Sessão, login, logout/CSRF, next seguro | Implementado | `accounts/views.py`, `accounts/tests.py`; não criar outro login |
+| Escopo médico/recepção/Admin | Implementado | `permissions.py`, views, `admin.py`, `test_permissions.py`; não é isolamento completo de SaaS em produção |
+| Cadastro/reutilização explícita | Implementado | `forms.py`, `test_patient_registration.py`; nome+telefone, escopo e transação; busca normalizada em Python pode precisar de otimização |
+| Grafo e auditoria de estados | Demonstrativo, serviço implementado | `state_engine.py`, `test_state_engine.py`; só local_simulation, sem endpoint ou evidência real de consentimento |
+| Consentimento versionado | Ausente | Não há termo/evidência/versionamento; status/evento não bastam como prova |
+| Entrada interna unificada e simulador | Ausente | Não existe serviço de ingestão; fontes são semeadas por `load_demo` |
+| Idempotência de entrada | Ausente | Slugs/event_key únicos e seed idempotente não deduplicam envelopes/mensagens de origem |
+| Fontes, vínculo item–fonte e correções | Parcial | `SourceItem`, `SummaryItem.sources`, `Correction`; ações preservam original, mas não há imutabilidade/versionamento completo e fixtures são atualizáveis |
+| Resultados estruturados e histórico longitudinal | Ausente como pipeline aprovado | Não há lote/versão de resultado/processamento; não liberar todos os atendimentos só por patient_id |
+| Mídias privadas | Parcial/demonstrativo | Mapeamento local + FileResponse autorizado, teste de bytes fictícios; sem upload, retenção ou storage privado provisionado |
+| Orquestrador/contratos/FakeAIProvider | Ausente | Não há camada de provedor ou processamento/retentativa; começar com contrato/fake depois da persistência |
+| Revisão médica | Parcial | Views/templates de notas/correções/feedback existem; sem ator registrado nesses modelos, versionamento de saída/publicação ou controle completo de concorrência |
+| Pronta versus concluída | Fronteira preservada, liberação futura ausente | Views só abrem ready; motor não produz ready; fixtures e ORM podem definir estado, não há serviço de publicação validada |
+| PostgreSQL, SQLite explícito, migrações | Implementado | `database.py`, requirements, `0001`–`0005`; base validada em CI, sem transferência automática de dados |
+| Testes e CI | Implementado com lacunas | 86 testes, PostgreSQL 17 em CI; falta E2E pipeline novo, concorrência real, smokes browser no workflow e deploy validation |
+| Produção/homologação | Ausente | WSGI entrypoint não é provisionamento; faltam hardening, servidor, static pipeline, backup/restore e monitoramento |
+| Governança Git | Documentada, não imposta remotamente | main sem proteção/rulesets; CI existente, revisão do outro dev recomendada, habilitação depende de autorização |
+
+Riscos transversais: flags de usuário não substituem vínculo; compartilhamento de
+Patient não amplia escopo clínico; eventos operacionais devem continuar sem payload
+clínico; source/result versionados não podem sobrescrever origem; preservar fixtures
+sem tratá-las como dados do pipeline. Correções concorrentes e autoria completa
+merecem validação no incremento de revisão, não correção oportunista nesta PR 00.
+
+O grafo de simulação aceita transições por perfis vinculados, mas não verifica
+consentimento real. No shell, o caller passa um User ativo; o serviço verifica
+escopo, não autentica uma sessão ou a identidade do paciente. O shell é uma
+ferramenta administrativa, não uma entrada pública. Essa política não está
+aprovada para produção. Agendamento
+demonstrativo usa deslocamento de data; não reutilizá-lo como relógio de auditoria.
+As migrações não trazem um contrato para processamento externo ou isolamento
+longitudinal. Nenhuma dessas lacunas requer reescrever modelos/UI na PR 00.
+
+## 15. Referências oficiais e documentação contínua
+
+- Este arquivo: conceito, arquitetura, responsabilidades e implementado versus alvo.
+- [Deploy](../deploy.md): única fonte dos procedimentos/configuração de ambiente.
+- [ROADMAP](ROADMAP.md): sequência 00–06, gates, decisões, execução e evidências.
+- [Motor atual](../state-engine.md): grafo/validação manual do simulador existente.
+- [Migração de repositório](../repository-migration.md): histórico preservado, não backlog.
+- [CONTRIBUTING](../../CONTRIBUTING.md): governança e política permanente de atualização.
+- [AGENTS](../../AGENTS.md): leitura e atualização obrigatórias para execuções do Codex.
+
+Ao terminar cada incremento, aplicar a política de CONTRIBUTING: atualizar conceito
+e deploy conforme impacto, registrar SEMPRE resultado/próximo passo no ROADMAP e
+manter o README da raiz como navegação. Não manter guias operacionais conflitantes
+nem declarar conclusão/CI por configuração ou intenção. A publicação da PR 00
+foi autorizada após revisão local; merge e início da PR 01 permanecem não autorizados.
