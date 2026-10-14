@@ -96,10 +96,18 @@ python manage.py showmigrations preconsultas --plan
 python manage.py migrate
 ```
 
-Migrações de domínio existentes: `0001`–`0005`; não apagar, renumerar, fazer
+Migrações de domínio nesta branch PR 01: `0001`–`0006`; não apagar, renumerar, fazer
 `--fake` ou reiniciar o histórico. PR 00 não cria/aplica migração. SQLite usa
 `db.sqlite3` da cópia atual; transferência de dados para PostgreSQL não é
 automática nem está aprovada como operação desta preparação.
+
+PR 01 acrescenta `0006_simulated_consent_evidence`, sem migração de dados ou
+backfill. Aplicar com `migrate` somente na cópia/banco que receber esse incremento,
+após revisar `migrate --plan`; não migrar a instância preservada em outra branch
+para validar este trabalho. Reverter 0006 remove a tabela de evidências: não
+executar rollback sobre evidências existentes sem plano e autorização.
+Validação interna por shell e consentimento simulado: [motor](state-engine.md).
+Não há nova variável, credencial, dependência ou serviço externo.
 
 ## 5. Dados fictícios, contas e inicialização
 
@@ -163,8 +171,10 @@ drift de migrações, migrate, duas cargas de demo e toda a suíte. PRs de qualq
 base disparam CI; pushes apenas para `main`. Nome do check: `Django checks and tests`.
 Valores do serviço são exclusivos de CI, não contas padrão da aplicação.
 
-A CI não faz deploy, smoke browser, backup/restore, validação de HTTPS ou ensaio
-de concorrência real. Check aprovado não comprova prontidão para dados reais.
+A CI não faz deploy, smoke browser, backup/restore ou validação de HTTPS. PR 01
+inclui dois ensaios concorrentes de domínio no PostgreSQL; isso não constitui
+teste de carga nem validação completa de produção. Check aprovado não comprova
+prontidão para dados reais.
 Publicação da PR 00 autorizada após revisão local; resultados da CI da entrega
 serão registrados no ROADMAP, sem inferir aprovação da configuração do workflow.
 Evidência histórica da base e resultados locais ficam no [ROADMAP](planning/ROADMAP.md).

@@ -6,6 +6,9 @@ do repositório público `Gabriel-J-Oliveira/projeto_pre_consulta`. Este arquivo
 autossuficiente para ser anexado a um chat de planejamento. Descreve o que existe,
 o que é demonstrativo e o que ainda depende de decisão. A sequência Pré-IA foi
 solicitada pela equipe; suas regras específicas e interfaces ainda exigem aprovação.
+Atualização PR 01: base empilhada `47092e62196ae3705ece7246be3199c0d1b0a6de`,
+branch `feature/pre-ai-domain-consent`; D01–D04 aprovadas em 14/10/2026 somente
+para simulação técnica pré-IA. PR 00/#8 e PR 01 não estão integradas à main.
 Não contém credenciais, dados pessoais, banco local ou documentos de pacientes.
 
 ## 1. Produto e estágio atual
@@ -69,10 +72,15 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
 - `DoctorNote`, `Correction`, `Feedback`: interações médicas persistidas.
 - `OperationalEvent`: linha do tempo operacional. Eventos do motor guardam
   estado anterior/novo, origem, usuário, data/hora real e marca de simulação.
+- `ConsentEvidence` (PR 01): consulta, referência da versão apresentada,
+  manifestação simulada, origem, momento, operador interno e evento exclusivo.
+  Não representa identidade autenticada do paciente ou prova jurídica.
 
 Migrações `0001`–`0003` preservam o protótipo original; `0004` acrescenta vínculos
 internos; `0005_operational_state_engine` acrescenta metadados opcionais de eventos
 e escolhas de estado. Não há migração de dados que transforme os estados antigos.
+`0006_simulated_consent_evidence` acrescenta tabela/constraints de consentimento
+e tipo de evento, sem backfill de manifestações ou alteração de estados legados.
 
 ## 4. Autenticação e autorização são separadas
 
@@ -136,6 +144,14 @@ Reutiliza `Consultation.status`. Não cria um segundo estado. O serviço
 `preconsultas.state_engine.transition(id, destino, actor=usuario)` centraliza
 as transições, verifica escopo e usuário ativo, rejeita saltos e grava estado e
 evento atomicamente. Origem habilitada: apenas `local_simulation`.
+O serviço `record_simulated_consent` registra uma manifestação por consulta/versão
+somente aguardando consentimento. Aceite deixa o estado aguardando; recusa grava
+evidência/eventos e estado terminal atomicamente. Versões anteriores não são
+sobrescritas. Início de coleta exige a última evidência de aceite e referência
+de versão explícita `consent_version`; versão ausente/divergente é rejeitada.
+A matriz simulada preserva médico atribuído/clínica e recepção/clínica, nega
+admin sem vínculo, outras origens e atores sem escopo. Detalhes no
+[motor](../state-engine.md); a matriz de produção permanece pendente.
 
 | Conceito | Valor persistido |
 | --- | --- |
@@ -201,8 +217,10 @@ pendentes nem aprovações transferidas. As branches antigas preservam seus SHAs
 a antiga `main` está em `archive/previous-main`. Consulte
 `docs/repository-migration.md` para o mapa e o histórico.
 
-Fluxo planejado: criar branches curtas por card a partir da `main` integrada,
-abrir PRs, aguardar CI real e revisão humana. Proteção/rulesets não estavam
+Fluxo padrão: branches curtas a partir da `main` integrada. Exceção autorizada
+em 14/10/2026: PR 01 empilhada sobre `chore/prepare-pre-ai`, dependente de #8,
+sem aguardar seu merge. Nenhum merge autorizado; aguardar CI real e revisão.
+Proteção/rulesets não estavam
 configurados na nova `main` durante a migração; configurá-los é uma pendência
 para colaboração, não uma regra que tenha sido removida ou contornada.
 Consultar `CONTRIBUTING.md` e a proteção atual; a autorização do solicitante para
@@ -303,7 +321,7 @@ Evidências apontam para arquivos revisados na base `1e199b4`:
 | Escopo médico/recepção/Admin | Implementado | `permissions.py`, views, `admin.py`, `test_permissions.py`; não é isolamento completo de SaaS em produção |
 | Cadastro/reutilização explícita | Implementado | `forms.py`, `test_patient_registration.py`; nome+telefone, escopo e transação; busca normalizada em Python pode precisar de otimização |
 | Grafo e auditoria de estados | Demonstrativo, serviço implementado | `state_engine.py`, `test_state_engine.py`; só local_simulation, sem endpoint ou evidência real de consentimento |
-| Consentimento versionado | Ausente | Não há termo/evidência/versionamento; status/evento não bastam como prova |
+| Consentimento versionado | Simulado na branch PR 01; ausente na base auditada | ConsentEvidence/consent.py, referência de versão e evento auditado; não é termo jurídico ou consentimento real |
 | Entrada interna unificada e simulador | Ausente | Não existe serviço de ingestão; fontes são semeadas por `load_demo` |
 | Idempotência de entrada | Ausente | Slugs/event_key únicos e seed idempotente não deduplicam envelopes/mensagens de origem |
 | Fontes, vínculo item–fonte e correções | Parcial | `SourceItem`, `SummaryItem.sources`, `Correction`; ações preservam original, mas não há imutabilidade/versionamento completo e fixtures são atualizáveis |
@@ -345,5 +363,5 @@ longitudinal. Nenhuma dessas lacunas requer reescrever modelos/UI na PR 00.
 Ao terminar cada incremento, aplicar a política de CONTRIBUTING: atualizar conceito
 e deploy conforme impacto, registrar SEMPRE resultado/próximo passo no ROADMAP e
 manter o README da raiz como navegação. Não manter guias operacionais conflitantes
-nem declarar conclusão/CI por configuração ou intenção. A publicação da PR 00
-foi autorizada após revisão local; merge e início da PR 01 permanecem não autorizados.
+nem declarar conclusão/CI por configuração ou intenção. Publicação da PR 01
+empilhada foi autorizada; merge e PR 02 não estão autorizados nesta execução.

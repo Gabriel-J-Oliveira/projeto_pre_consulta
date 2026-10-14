@@ -1,5 +1,6 @@
 import re
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from django.db import models
 
@@ -211,6 +212,7 @@ class Feedback(models.Model):
 
 
 class OperationalEvent(models.Model):
+    KIND_CONSENT_RECORDED = "consent_recorded"
     KIND_STATE_CHANGED = "state_changed"
     KIND_CREATED = "created"
     KIND_INVITE_PLANNED = "invite_planned"
@@ -221,6 +223,7 @@ class OperationalEvent(models.Model):
     KIND_INCOMPLETE = "incomplete"
     KIND_CONSENT_DECLINED = "consent_declined"
     KIND_CHOICES = [
+        (KIND_CONSENT_RECORDED, "Manifestação simulada registrada"),
         (KIND_STATE_CHANGED, "Estado operacional alterado"),
         (KIND_CREATED, "Registro criado"),
         (KIND_INVITE_PLANNED, "Convite previsto"),
@@ -253,3 +256,58 @@ class OperationalEvent(models.Model):
 
     def __str__(self):
         return f"{self.consultation.slug}: {self.get_kind_display()}"
+
+
+class ConsentEvidence(models.Model):
+    """Simulated manifestation, not patient identity or legal proof.
+
+    Domain services append records; there is no consent Admin or public endpoint.
+    Raw SQL/QuerySet writes are not an immutable storage boundary.
+    """
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    LOCAL_SIMULATION = "local_simulation"
+    consultation = models.ForeignKey(
+        Consultation, related_name="consent_evidence", on_delete=models.PROTECT,
+    )
+    term_version = models.CharField(max_length=80)
+    manifestation = models.CharField(
+        max_length=8, choices=[(ACCEPTED, "Aceite simulado"), (DECLINED, "Recusa simulada")],
+    )
+    origin = models.CharField(max_length=30, default=LOCAL_SIMULATION, editable=False)
+    occurred_at = models.DateTimeField(editable=False)
+    is_simulated = models.BooleanField(default=True, editable=False)
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name="simulated_consent_evidence",
+    )
+    event = models.OneToOneField(
+        OperationalEvent, on_delete=models.PROTECT, related_name="consent_evidence",
+    )
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["consultation", "term_version"], name="unique_consent_consultation_version",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(is_simulated=True, origin="local_simulation"),
+                name="consent_simulation_only",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(manifestation__in=["accepted", "declined"]),
+                name="consent_manifestation_valid",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(term_version=""), name="consent_version_not_empty",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Evidências não podem ser sobrescritas; registre uma nova versão.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Evidências simuladas devem ser preservadas.")
