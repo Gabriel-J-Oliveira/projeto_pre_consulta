@@ -15,6 +15,11 @@ PR 02: implementação/publicação empilhada autorizada sobre
 árvore limpa; ancestralidade com #8 confirmada, #8/#9 abertas. Nenhum merge,
 alteração de main/PRs anteriores ou implementação da PR 03 autorizados.
 
+PR 03: aprovação expressa de D06 e início/publicação em 14/10/2026, após prompt
+condicional e confirmação do solicitante. Base `origin/feature/pre-ai-event-ingestion`,
+SHA `76818a0acd49f72bda518ca65ea6e43beb306bc5`, árvore limpa e cadeia #8→#9→#10
+aberta/confirmada. Aprovação apenas técnica fictícia; nenhum merge ou PR 04.
+
 Referências: [conceito e auditoria](README.md), [operação/deploy](../deploy.md),
 [estados atuais](../state-engine.md), [histórico da migração](../repository-migration.md),
 [política documental](../../CONTRIBUTING.md).
@@ -36,7 +41,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | PR 00 — Preparação/documentação | Em revisão; PR aberta, sem merge | Base auditada | `chore/prepare-pre-ai` (real) | [GitHub #8](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/8); implementação documental `d4e0d11922e3b1b629dc810819a3936ed8081e1d`; registro de publicação em commit subsequente |
 | PR 01 — Domínio/consentimento | Em revisão; PR aberta, sem merge | PR 00/#8 como base empilhada; D01–D04 técnicas aprovadas | `feature/pre-ai-domain-consent` (real) | [GitHub #9](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/9); implementação `3dd3e2cba0d7aa1ab97038ddf487072b821927a9`; registro de publicação em commit subsequente |
 | PR 02 — Entrada unificada | Em revisão; PR aberta, sem merge | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10); implementação `fcd6ac8874988b55e64a9fd1987c605588f3eaf6`; registro de publicação em commit subsequente |
-| PR 03 — Persistência/rastreabilidade | Pendente | PR 02 + escopo longitudinal D06 | `feature/pre-ai-traceability` (proposta) | Não criados |
+| PR 03 — Persistência/rastreabilidade | Em revisão; PR aberta, sem merge | PR #10 como base empilhada; D06 técnica aprovada | `feature/pre-ai-traceability` (real) | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11); implementação `45b485e982247c9f05ddce28777fb081363863a3`; registro de publicação em commit subsequente |
 | PR 04 — Orquestrador/contrato IA | Pendente | PR 03 + contrato/processamento D07 | `feature/pre-ai-orchestration` (proposta) | Não criados |
 | PR 05 — Revisão médica | Pendente | PR 04 + liberação clínica D04 | `feature/pre-ai-medical-review` (proposta) | Não criados |
 | PR 06 — Testes/handoff | Pendente | PR 05 + critérios operacionais D08 | `chore/pre-ai-handoff` (proposta) | Não criados |
@@ -148,9 +153,18 @@ Fonte original deve continuar disponível e não ser sobrescrita pelo resultado
 estruturado. O campo `original_value` e correções atuais não bastam como esquema
 completo de versões de resultados e entradas.
 
-Escopo futuro: preservação/versionamento, associação a fontes, metadados de
-proveniência, histórico longitudinal básico com escopo aprovado e abstração de
-armazenamento privado. Não adicionar DOB/prontuário/CRUD de pacientes por arrasto.
+Implementação PR 03: vínculo opcional SourceItem→InboundMessage com unicidade,
+materialização idempotente/transacional, imagem como referência e ator simulação.
+SummaryRevision/Source preservam snapshots da estrutura ATUAL e vínculos de fontes,
+sem definir schema de IA/D07; captura explícita, não automática nas views.
+Leituras clínicas e histórico só ready/médico atribuído/clínica; recepção/admin
+sem acesso. Escrita de materialização retorna só ID e não publica conteúdo.
+Migração 0008 sem backfill, legados/seed mantidos. [Detalhes](README.md#17-proveniência-e-revisões-pr-03--d06-técnica-aprovada).
+
+Escopo: preservação/versionamento, associação a fontes, metadados de
+proveniência e histórico longitudinal básico restrito. Armazenamento privado
+produtivo e retenção permanecem pendentes de D08, sem adapter implementado aqui.
+Não adicionar DOB/prontuário/CRUD de pacientes por arrasto.
 Não escolher S3, armazenamento externo ou novo provedor sem decisão D06/D08.
 
 Aceite/testes: múltiplas versões preservadas, referências a fontes da própria
@@ -248,7 +262,7 @@ na sprint posterior, não nesta PR.
 | D03 | Aprovados estados finais sem reabertura/timeout automático; critérios de encerramento produtivo pendentes | PR 01 preserva grafo; nenhuma automação |
 | D04 | Aprovada fronteira completed != ready e serviço autorizado; critérios/ator de publicação pendentes | PR 01 invariantes; PR 05 implementará publicação |
 | D05 | Proposta técnica do simulador implementada por autorização da PR 02; contrato/namespace/autenticação/ordem de canais reais continuam pendentes | PR 02 simulado; canais reais não autorizados |
-| D06 | Escopo longitudinal por paciente sem ampliar acesso entre médicos/clínicas; retenção/versionamento e mídias | PR 03 |
+| D06 | Aprovada técnica fictícia: materialização/proveniência, snapshots da estrutura existente e histórico ready restrito; schema IA/D07 e retenção/storage produtivos/D08 pendentes | PR 03; produção não autorizada |
 | D07 | Contratos IA, versão, limites de input/output, retry e execução síncrona/assíncrona | PR 04, acordo com desenvolvedor de IA |
 | D08 | Hosting/homologação, armazenamento privado, backup/restore, segurança e critério de prontidão | Antes de deploy; PR 03/06 conforme escopo |
 | G01 | Autorizar configuração da proteção main e conceder acesso ao segundo desenvolvedor | Governança; não aplicado em PR 00 |
@@ -330,6 +344,21 @@ Limites técnicos v1 estão no conceito e não são regras de mídia/ordem aprov
 de WhatsApp. Namespace por conta/integrador, autenticação de canal, prova de
 identidade, limites reais, ordenação/encerramento e retenção exigem aprovação.
 
+### D06 — Proveniência, snapshots e histórico restrito
+
+Aprovada expressamente pelo solicitante em 14/10/2026 (“A D06 está aprovada
+conforme planejamos”), sobre o prompt da PR 03: técnica simulada, sem IA,
+prontuário, storage externo, publicação ou retenção produtiva. Modelo mínimo
+independente de D07: vínculo OneToOne opcional na fonte e snapshot específico
+do SummaryItem atual, preservando entradas/revisões/referências anteriores.
+Alternativas descartadas: sobrescrever entrada, inventar origem de legados,
+imutabilidade global que quebra seed, histórico por patient_id sem escopo,
+payload genérico de IA antes do contrato. Riscos: escritores ORM privilegiados,
+fontes legadas atualizáveis e ações antigas ainda sem snapshot/autor integrados.
+Consequências: migração aditiva, leitura clínica só ready, testes de escopo,
+rollback/concorrência e upgrade. D07 deverá definir provedor/DTO/processamento;
+D08 define retenção/storage produtivos. Nada disso é antecipado pela PR 03.
+
 ## 11. Governança Git observada e recomendada
 
 Consulta somente leitura em 14/10/2026: API de proteção de main retornou
@@ -363,6 +392,24 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — CI final da base PR 01 | GitHub #9, HEAD `fae081e` | [CI 38597110215](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38597110215) aprovada, PostgreSQL 17.11 e 108 testes sem skips. #8/#9 ainda abertas, sem merge |
 | 14/10/2026 — PR 02 local | `feature/pre-ai-event-ingestion`, base `fae081e` | Check sem problemas, drift sem alterações, migrate --plan revisado. 135 testes em SQLite temporário: 131 aprovados, 4 concorrentes ignorados, 29,121 s. Upgrade 0006→0007 preserva evidência/fontes/resumos/estados; nenhuma entrada inventada. CI da entrega ainda não executada |
 | 14/10/2026 — PR 02 publicada e CI da implementação | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10), base `feature/pre-ai-domain-consent`, commit `fcd6ac8` | [CI 38599542994](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38599542994) aprovada em PostgreSQL 17.11: 135 testes sem skips, incluindo quatro concorrentes e upgrade incremental. Check, drift, migrate e demo duas vezes aprovados. Sem revisão formal/merge; o commit documental subsequente exige nova CI do HEAD final |
+| 14/10/2026 — CI final da base PR 02 | GitHub #10, HEAD `76818a0` | [CI 38599762925](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38599762925) aprovada, PostgreSQL 17.11 e 135 testes sem skips; #8/#9/#10 abertas, bases e SHAs preservados |
+| 14/10/2026 — PR 03 local, D06 aprovada | `feature/pre-ai-traceability`, base `76818a0` | Check/drift aprovados, migrate --plan revisado; 157 testes SQLite temporário, 151 aprovados e 6 concorrentes ignorados, 31,417 s. Upgrade 0007→0008 e seed/reset em banco de testes preservam legado/entradas/snapshots sem origem inventada. CI da entrega ainda não executada |
+| 14/10/2026 — PR 03 publicada e CI da implementação | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11), base `feature/pre-ai-event-ingestion`, commit `45b485e` | [CI 38606894698](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38606894698) aprovada em PostgreSQL 17.11: 157 testes sem skips, seis concorrentes e upgrade incremental. Check/drift/migrate/demo duas vezes aprovados. Sem revisão formal/merge; commit documental subsequente exige nova CI do HEAD final |
+
+Registro PR 03: SourceItem com vínculo opcional de origem e imagem/simulação,
+SummaryRevision/Source, traceability.py, migração 0008 e testes. Template recebeu
+somente apresentação de mídia materializada como referência não processada,
+sem duração/transcrição inventadas; ramo legado preservado e testado.
+Conceito/ROADMAP/deploy atualizados. AGENTS/CONTRIBUTING, README principal,
+state-engine, ingestion e workflow revisados, sem alterações necessárias.
+Nenhum endpoint, dependência, variável/credencial ou serviço externo novo.
+Dados/configurações locais preservados; nenhum seed/reset/flush/migrate no banco
+de validação, nem reinício dos servidores. Testes usam banco temporário.
+PostgreSQL local não disponível (docker/psql fora do PATH); concorrência real
+exige CI. Smokes browser não executados: instâncias preservadas não receberam
+este código; testes Django cobrem renderização legada/nova e permissões/CSRF.
+Snapshots explícitos não integram automaticamente as ações antigas; isso fica
+para PR 05. Validações de aplicação não impedem SQL/QuerySet privilegiado.
 
 Registro PR 02: InboundMessage, ingest_message, contrato sim.v1, simulador e
 migração 0007. Ajuste mínimo do teste de migração da PR 01 para restaurar as
@@ -417,17 +464,17 @@ real de homologação/produção inexistente; é gate futuro, não resultado apr
 ## 13. Problemas conhecidos e próximo passo
 
 Consentimento real, catálogo jurídico de termos, ingestão por canais reais, processamento/contratos,
-resultados estruturados versionados e release clínico não existem. Rastreabilidade
+schema/pipeline de IA e release clínico não existem. Rastreabilidade
 de fontes/correções é parcial; notas/correções/feedback não registram usuário;
 o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídia
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: aguardar revisão da PR 02 publicada e conferir CI do HEAD final
-após este registro. #8/#9 permanecem abertas e intactas; nenhum merge autorizado.
-PR 03 depende destas entradas duráveis e de D06 (versionamento/proveniência,
-escopo longitudinal/retenção/armazenamento). Não iniciar PR 03 nesta execução;
-definir seu recorte e decisões pendentes com a equipe antes de implementar.
+Próximo passo: aguardar revisão da PR 03 publicada e confirmar CI do HEAD final
+após este registro. #8/#9/#10 intactas; nenhum merge autorizado.
+Tecnicamente há base para definir D07/PR 04: contrato, payloads/provedor fake,
+erros/versões/limites e responsabilidades ainda precisam de aprovação. Não iniciar
+PR 04 automaticamente. Integração do versionamento às ações médicas fica na PR 05.
 
 ## 14. Registro obrigatório em cada entrega
 

@@ -96,7 +96,7 @@ python manage.py showmigrations preconsultas --plan
 python manage.py migrate
 ```
 
-Migrações de domínio nesta branch PR 02: `0001`–`0007`; não apagar, renumerar, fazer
+Migrações de domínio nesta branch PR 03: `0001`–`0008`; não apagar, renumerar, fazer
 `--fake` ou reiniciar o histórico. PR 00 não cria/aplica migração. SQLite usa
 `db.sqlite3` da cópia atual; transferência de dados para PostgreSQL não é
 automática nem está aprovada como operação desta preparação.
@@ -114,6 +114,28 @@ Não cria mensagens históricas nem transforma SourceItem/SummaryItem. Upgrade
 incremental validado por teste em banco temporário. Reverter 0007 remove entradas
 duráveis: não reverter sobre dados preservados sem plano/autorização. Nenhuma
 dependência, variável de ambiente, endpoint ou serviço novo é necessário.
+
+PR 03 acrescenta `0008_source_provenance_summary_revisions`: campos de origem
+opcionais em SourceItem, escolhas de imagem/simulação e tabelas de snapshots.
+Não cria entradas/fontes/revisões para registros existentes. Revisar migrate
+--plan e aplicar somente no banco/cópia que receber a branch; não executar nas
+instâncias preservadas para validar. Reversão apaga tabelas/vínculos de origem:
+exige plano/autorização se houver dados. Sem nova configuração ou dependência.
+`load_demo` mantém legados sem vínculos artificiais, preserva fontes materializadas
+e snapshots; seu reset demonstrativo ainda apaga correções, não os snapshots.
+
+### Validação isolada da rastreabilidade
+
+```powershell
+python manage.py test preconsultas.test_traceability
+```
+
+Runner cria banco temporário, consulta fictícia, operador de recepção vinculado,
+médico atribuído, aceite simulado e entrada. Testa materialização, mídia como
+metadado, reentrega, snapshots, escopos, rollback e upgrade 0007→0008. Dois novos
+testes concorrentes usam PostgreSQL; SQLite os ignora. Nenhum usuário padrão,
+endpoint ou processo de IA criado. Não executar setup por shell no banco preservado.
+Interfaces/justificativa do modelo: [conceito, seção 17](planning/README.md#17-proveniência-e-revisões-pr-03--d06-técnica-aprovada).
 
 ### Simulador de ingestão — somente banco fictício isolado
 

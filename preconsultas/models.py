@@ -100,17 +100,21 @@ class SourceItem(models.Model):
     KIND_MESSAGE = "message"
     KIND_AUDIO = "audio"
     KIND_PDF = "pdf"
+    KIND_IMAGE = "image"
     KIND_CHOICES = [
         (KIND_MESSAGE, "Mensagem"),
         (KIND_AUDIO, "Áudio"),
         (KIND_PDF, "PDF"),
+        (KIND_IMAGE, "Referência de imagem"),
     ]
 
     AUTHOR_PATIENT = "patient"
     AUTHOR_AI = "ai"
+    AUTHOR_SIMULATION = "simulation"
     AUTHOR_CHOICES = [
         (AUTHOR_PATIENT, "Paciente"),
         (AUTHOR_AI, "Assistente virtual"),
+        (AUTHOR_SIMULATION, "Entrada simulada"),
     ]
 
     consultation = models.ForeignKey(
@@ -125,12 +129,38 @@ class SourceItem(models.Model):
     description = models.CharField(max_length=240, blank=True)
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
     demo_transcript = models.TextField(blank=True)
+    inbound_message = models.OneToOneField(
+        "InboundMessage", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="clinical_source",
+    )
+    materialized_at = models.DateTimeField(null=True, blank=True, editable=False)
+    materialized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="materialized_sources",
+    )
 
     class Meta:
         ordering = ["sent_at", "id"]
 
     def __str__(self):
         return self.source_key
+
+    def clean(self):
+        if self.inbound_message_id:
+            if (self.consultation_id != self.inbound_message.consultation_id
+                    or not self.materialized_at or not self.materialized_by_id):
+                raise ValidationError("Proveniência da fonte inconsistente.")
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk, inbound_message__isnull=False).exists():
+            raise ValidationError("Fontes materializadas devem preservar a origem.")
+        self.clean()
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk, inbound_message__isnull=False).exists():
+            raise ValidationError("Fontes materializadas devem ser preservadas.")
+        return super().delete(*args, **kwargs)
 
 
 class SummaryItem(models.Model):
@@ -357,3 +387,65 @@ class InboundMessage(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Mensagens recebidas devem ser preservadas.")
+
+
+class SummaryRevision(models.Model):
+    """Append-only snapshot of the EXISTING SummaryItem presentation, not AI DTOs."""
+    consultation = models.ForeignKey(Consultation, on_delete=models.PROTECT, related_name="summary_revisions")
+    summary_item = models.ForeignKey(SummaryItem, on_delete=models.PROTECT, related_name="revisions")
+    logical_key = models.SlugField()
+    number = models.PositiveIntegerField()
+    created_at = models.DateTimeField(editable=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                   related_name="summary_revisions")
+    section = models.CharField(max_length=80)
+    label = models.CharField(max_length=120)
+    attribution = models.CharField(max_length=20, choices=SummaryItem.ATTRIBUTION_CHOICES)
+    original_value = models.TextField()
+    presented_value = models.TextField()
+    is_hidden = models.BooleanField(default=False)
+    # Snapshot reference only: demo reset may delete Correction without erasing history.
+    correction_reference = models.PositiveBigIntegerField(null=True, blank=True)
+    sources = models.ManyToManyField(SourceItem, through="SummaryRevisionSource", related_name="revisions")
+
+    class Meta:
+        ordering = ["number", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["consultation", "logical_key", "number"], name="unique_summary_revision"),
+            models.CheckConstraint(condition=models.Q(number__gte=1), name="summary_revision_positive"),
+        ]
+
+    def clean(self):
+        if (self.summary_item.consultation_id != self.consultation_id
+                or self.summary_item.item_key != self.logical_key):
+            raise ValidationError("Contexto da revisão inconsistente.")
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Revisões anteriores não podem ser sobrescritas.")
+        self.clean()
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Revisões anteriores devem ser preservadas.")
+
+
+class SummaryRevisionSource(models.Model):
+    revision = models.ForeignKey(SummaryRevision, on_delete=models.PROTECT, related_name="source_references")
+    source = models.ForeignKey(SourceItem, on_delete=models.PROTECT, related_name="revision_references")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["revision", "source"], name="unique_revision_source")]
+
+    def clean(self):
+        if self.revision.consultation_id != self.source.consultation_id:
+            raise ValidationError("Fonte e revisão devem pertencer à mesma consulta.")
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Referências de revisão não podem ser sobrescritas.")
+        self.clean()
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Referências de revisão devem ser preservadas.")
