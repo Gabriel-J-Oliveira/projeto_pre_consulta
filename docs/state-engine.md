@@ -86,7 +86,8 @@ Perfis duplos somam somente seus vínculos explícitos. Política centralizada e
 `TRANSITION_POLICY`, com negação por padrão; não autoriza conteúdo clínico.
 Estados legados em coleta/confirmação podem seguir as arestas existentes, sem
 retrocriar evidências. Novas entradas em coleta passam obrigatoriamente pelo gate.
-`ready` permanece apenas legado; serviço de publicação será tratado na PR 05.
+O motor comum continua sem aresta para `ready`. Na branch PR 05, o serviço separado
+de publicação simulada abaixo implementa o complemento técnico aprovado da D04.
 
 Migração aditiva `0006_simulated_consent_evidence`: tabela nova, unicidade por
 consulta/versão e constraints de manifestação/simulação, mais tipo de evento.
@@ -173,3 +174,29 @@ consentimento de casos legados. O lock da consulta coordena ingestão, estado e
 consentimento no PostgreSQL. A entrada privada referencia a evidência usada,
 sem texto clínico em OperationalEvent. Não é transformação em fonte clínica.
 Contrato: [contexto](planning/README.md#16-contrato-de-ingestão-pr-02--d05-restrita-à-simulação).
+
+## Publicação controlada — PR 05, distinta do grafo comum
+
+Complemento D04 aprovado pelo solicitante em 14/10/2026 somente para dados
+fictícios: médico ativo atribuído/clínica, estado inicial completed, execução
+build_summary fake bem-sucedida, contrato/proveniência/contexto/aceite simulados
+válidos e atuais. `publication.publish_consultation(id, execution_id, actor=medico)`
+valida internamente ainda completed; não finge ready nem enfraquece current_result.
+Publicação, itens/fontes, snapshots, evento operacional sem conteúdo clínico e
+completed→ready são atômicos. Ready significa material para revisão, não laudo,
+assinatura médica ou aprovação clínica. O grafo ALLOWED_TRANSITIONS não mudou.
+
+Repetição da MESMA publicação válida retorna o mesmo registro; ready com outra
+execução não admite republicação. Conteúdo vazio ou somente pontos de atenção
+é rejeitado conservadoramente: ao menos um item de síntese é necessário.
+Recepção/admin sem médico/provedor não publicam. O botão é POST/CSRF no painel
+médico, mostrando somente disponibilidade técnica até a confirmação.
+
+Toda leitura nova e revisão verifica a publicação/contexto. Obsolescência
+detectada registra necessidade de validação (momento/usuário), mantém publicação
+e resultado original, bloqueia leitura/POST/anexos/links e marca a execução técnica
+obsolete; NÃO altera status operacional. Restaurar contexto não remove o bloqueio.
+Revalidar/republicar ready requer política futura; não há reabertura automática.
+Legado é identificação explícita de fixture, não ausência genérica de publicação.
+Detalhes e limites: [conceito](planning/README.md#19-publicação-e-revisão-pr-05--complemento-d04-aprovado),
+[operação segura](deploy.md). Nenhum termo/consentimento real aprovado por isso.

@@ -43,7 +43,7 @@
         <div class="case-title-row">
           <div>
             <h1 id="case-title">{{ consultation.patient.name }}</h1>
-            <p>{{ consultation.patient.age }} anos · Consulta clínica</p>
+            <p>{% if consultation.patient.age != None %}{{ consultation.patient.age }} anos · {% endif %}{{ consultation.appointment_type }}</p>
           </div>
           <span class="status-ready"><span aria-hidden="true">✓</span> {{ consultation.get_status_display }}</span>
         </div>
@@ -70,6 +70,13 @@
       </div>
     {% endif %}
 
+    {% if consultation.publication %}
+      <div class="server-messages publication-notice" role="note">
+        <p>Publicação SIMULADA para revisão médica. Não representa diagnóstico, prescrição ou aprovação clínica definitiva.</p>
+        <p>Publicada em {{ consultation.publication.published_at|date:'d/m/Y H:i' }} por {{ consultation.publication.doctor.name }}.</p>
+      </div>
+    {% endif %}
+
     <div class="workspace">
       <section class="summary-panel" id="resumo" aria-labelledby="summary-title">
         <div class="panel-heading">
@@ -85,7 +92,7 @@
 
         <div class="legend" aria-label="Legenda de origem das informações">
           <span><i class="dot dot--patient"></i> Relatado pelo paciente</span>
-          <span><i class="dot dot--ai"></i> Síntese da IA</span>
+          <span><i class="dot dot--ai"></i> {% if consultation.publication %}Síntese simulada{% else %}Síntese da IA{% endif %}</span>
           <span><i class="dot dot--doctor"></i> Ajustado pelo médico</span>
         </div>
 
@@ -108,7 +115,7 @@
                     <div class="summary-item__label-row">
                       <h4>{{ item.label }}</h4>
                       <span class="source-type source-type--{% if item.was_adjusted %}doctor{% else %}{{ item.attribution }}{% endif %}">
-                        {% if item.was_adjusted %}Ajustado pelo médico{% else %}{{ item.get_attribution_display }}{% endif %}
+                        {% if item.was_adjusted %}Ajustado pelo médico{% elif item.publication_id %}Síntese simulada{% else %}{{ item.get_attribution_display }}{% endif %}
                       </span>
                     </div>
                     <p class="summary-item__value">{{ item.presented_value }}</p>

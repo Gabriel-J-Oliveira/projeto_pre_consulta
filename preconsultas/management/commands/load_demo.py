@@ -74,6 +74,7 @@ class Command(BaseCommand):
                 "appointment_type": "Consulta clínica",
                 "contact_lead_hours": 48,
                 "status": Consultation.STATUS_READY,
+                "legacy_demo": True,
                 "demo_day_offset": 0,
             },
         )

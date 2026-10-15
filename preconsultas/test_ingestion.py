@@ -362,10 +362,10 @@ class IngestionMigrationTests(TransactionTestCase):
         connection = connections["default"]
         before = [("preconsultas", "0006_simulated_consent_evidence")]
         executor = MigrationExecutor(connection)
+        case, actor = collecting_fixture()
         executor.migrate(before)
         try:
             old = executor.loader.project_state(before).apps
-            case, actor = collecting_fixture()
             source = old.get_model("preconsultas", "SourceItem").objects.create(
                 consultation_id=case.pk, source_key="fonte-legada-ingestao", kind="message", author="patient",
                 sent_at=timezone.now(), body="Fonte fictícia legada preservada.",

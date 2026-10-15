@@ -45,7 +45,7 @@ class TraceabilityTests(TestCase):
 
     def ready_fixture(self):
         # Fixture only, not a clinical publication service.
-        Consultation.objects.filter(pk=self.case.pk).update(status=Consultation.STATUS_READY)
+        Consultation.objects.filter(pk=self.case.pk).update(status=Consultation.STATUS_READY, legacy_demo=True)
 
     def create_item(self, source):
         item = SummaryItem.objects.create(
@@ -433,7 +433,7 @@ class TraceabilityConcurrencyTests(TransactionTestCase):
     def test_concurrent_identical_snapshots_create_one_revision(self):
         case, reception, actor, message_id = traceability_fixture()
         source = SourceItem.objects.get(pk=materialize_message(case.pk, message_id, actor=actor).source_id)
-        Consultation.objects.filter(pk=case.pk).update(status="ready")  # Fixture only.
+        Consultation.objects.filter(pk=case.pk).update(status="ready", legacy_demo=True)  # Explicit demo fixture only.
         item = SummaryItem.objects.create(consultation=case, item_key="snapshot-concorrente",
                                          section="Teste", label="Teste fictício", original_value="Fictício", attribution="ai")
         item.sources.add(source)
@@ -460,11 +460,11 @@ class TraceabilityMigrationTests(TransactionTestCase):
         connection = connections["default"]
         before = [("preconsultas", "0007_inboundmessage")]
         executor = MigrationExecutor(connection)
+        case, reception = collecting_fixture()
+        message_id = ingest_message(simulation_envelopes(case.pk)[0], actor=reception).message_id
         executor.migrate(before)
         try:
             old = executor.loader.project_state(before).apps
-            case, reception = collecting_fixture()
-            message_id = ingest_message(simulation_envelopes(case.pk)[0], actor=reception).message_id
             source = old.get_model("preconsultas", "SourceItem").objects.create(
                 consultation_id=case.pk, source_key="fonte-antiga-0007", kind="message", author="patient",
                 sent_at=timezone.now(), body="Fonte fictícia anterior ao vínculo.",

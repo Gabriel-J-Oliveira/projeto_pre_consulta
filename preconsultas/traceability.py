@@ -11,6 +11,7 @@ from .models import (
     SourceItem, SummaryItem, SummaryRevision, SummaryRevisionSource,
 )
 from .permissions import doctor_consultations
+from .clinical_access import clinical_guard
 
 
 class TraceabilityPersistenceError(Exception):
@@ -32,6 +33,9 @@ def _id(value):
 def _medical_cases(actor):
     if not actor or not actor.is_authenticated or not actor.is_active:
         raise PermissionDenied
+    from django.contrib.auth import get_user_model
+    if not get_user_model().objects.filter(pk=actor.pk, is_active=True).exists():
+        raise PermissionDenied
     return doctor_consultations(actor)
 
 
@@ -43,6 +47,9 @@ def _case(consultation_id, actor, *, clinical=False, lock=False):
     case = cases.filter(pk=consultation_id).first()
     if not case or (clinical and case.status != Consultation.STATUS_READY):
         raise PermissionDenied
+    if clinical:
+        from .clinical_access import require_clinical
+        require_clinical(case, actor=actor, lock=lock)
     return case
 
 
@@ -110,9 +117,10 @@ def materialize_message(consultation_id, message_id, *, actor):
         raise TraceabilityPersistenceError("Não foi possível persistir a rastreabilidade.") from None
 
 
+@clinical_guard
 def source_provenance(consultation_id, source_id, *, actor):
     _id(source_id)
-    case = _case(consultation_id, actor, clinical=True)
+    case = _case(consultation_id, actor, clinical=True, lock=True)
     source = SourceItem.objects.filter(pk=source_id, consultation=case).select_related("inbound_message__consent__event").first()
     if source is None:
         raise PermissionDenied
@@ -131,6 +139,7 @@ def source_provenance(consultation_id, source_id, *, actor):
     }
 
 
+@clinical_guard
 def record_summary_revision(consultation_id, item_id, *, actor):
     """Snapshot existing values/corrections/references, never generate a summary.
 
@@ -176,9 +185,10 @@ def record_summary_revision(consultation_id, item_id, *, actor):
         raise TraceabilityPersistenceError("Não foi possível persistir a rastreabilidade.") from None
 
 
+@clinical_guard
 def summary_revisions(consultation_id, item_id, *, actor):
     _id(item_id)
-    case = _case(consultation_id, actor, clinical=True)
+    case = _case(consultation_id, actor, clinical=True, lock=True)
     if not SummaryItem.objects.filter(pk=item_id, consultation=case).exists():
         raise PermissionDenied
     revisions = SummaryRevision.objects.filter(consultation=case, summary_item_id=item_id).prefetch_related("sources")
@@ -200,8 +210,18 @@ def summary_revisions(consultation_id, item_id, *, actor):
     return tuple(result)
 
 
+@clinical_guard
 def patient_history(patient_id, *, actor):
     """No lookup outside current doctor's ready scope and no sources prefetched."""
     _id(patient_id)
     cases = _medical_cases(actor).filter(patient_id=patient_id, status=Consultation.STATUS_READY).order_by("scheduled_for", "pk")
-    return tuple(cases.values("id", "slug", "scheduled_for", "doctor_id", "clinic_id", "status"))
+    from .clinical_access import require_clinical
+    result = []
+    for case in cases:
+        try:
+            require_clinical(case, actor=actor, lock=True)
+        except PermissionDenied:
+            continue
+        result.append({key: getattr(case, key) for key in
+                       ("id", "slug", "scheduled_for", "doctor_id", "clinic_id", "status")})
+    return tuple(result)

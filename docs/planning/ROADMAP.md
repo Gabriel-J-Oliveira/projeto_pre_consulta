@@ -26,6 +26,13 @@ em 14/10/2026. Base `origin/feature/pre-ai-traceability`, SHA
 cadeia #8→#9→#10→#11 confirmada/aberta. Nenhum merge, alteração das anteriores
 ou início de PR 05 autorizado. Contrato/handoff aguardam revisão/aprovação humana.
 
+PR 05: complemento técnico D04 aprovado pelo solicitante em 14/10/2026 no prompt
+específico: médico ativo atribuído/clínica publica completed→ready somente com
+build_summary fake bem-sucedido/válido/atual e aceite simulado. Base
+`origin/feature/pre-ai-orchestration`, SHA `c3d8c2f58c6449727fd9289f43d9b99997dc546f`,
+árvore inicial limpa; cadeia #8→#9→#10→#11→#12 aberta e ancestralidade confirmada.
+Implementação/publicação empilhadas autorizadas, sem merge ou início de PR 06.
+
 Referências: [conceito e auditoria](README.md), [operação/deploy](../deploy.md),
 [estados atuais](../state-engine.md), [histórico da migração](../repository-migration.md),
 [política documental](../../CONTRIBUTING.md).
@@ -49,7 +56,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | PR 02 — Entrada unificada | Em revisão; PR aberta, sem merge | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10); implementação `fcd6ac8874988b55e64a9fd1987c605588f3eaf6`; registro de publicação em commit subsequente |
 | PR 03 — Persistência/rastreabilidade | Em revisão; PR aberta, sem merge | PR #10 como base empilhada; D06 técnica aprovada | `feature/pre-ai-traceability` (real) | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11); implementação `45b485e982247c9f05ddce28777fb081363863a3`; registro de publicação em commit subsequente |
 | PR 04 — Orquestrador/contrato IA | Em revisão; PR aberta, sem merge | PR #11 como base empilhada; D07 técnica aprovada | `feature/pre-ai-orchestration` (real) | [GitHub #12](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/12); implementação `1a4183f39523b7142641d1b3421ded07bd4d3840`; registro de publicação em commit subsequente |
-| PR 05 — Revisão médica | Pendente | PR 04 + liberação clínica D04 | `feature/pre-ai-medical-review` (proposta) | Não criados |
+| PR 05 — Revisão médica | Em revisão; PR aberta, sem merge | PR #12 empilhada; complemento D04 técnico aprovado | `feature/pre-ai-medical-review` (real) | [GitHub #13](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/13); implementação `d7314b5d7dfbc59151deea8a312100baf80e36f1`; registro de publicação em commit subsequente |
 | PR 06 — Testes/handoff | Pendente | PR 05 + critérios operacionais D08 | `chore/pre-ai-handoff` (proposta) | Não criados |
 
 Sequência preservada: 00 → 01 → 02 → 03 → 04 → 05 → 06. Contratos podem ser
@@ -232,7 +239,7 @@ Dependência: PR 03; não integrar modelo real nesta trilha de preparação.
 Reaproveitar telas, vínculo resumo–fontes, notas, correções e feedback existentes.
 Não reescrever a UI nem liberar acesso só porque um processamento terminou.
 
-Escopo futuro: consumir resultados versionados/validados, publicar clinicamente
+Escopo implementado na branch PR 05: consumir resultados versionados/validados, publicar explicitamente
 com gate D04, permitir revisão preservando fonte original e autoria/trilha de
 correções/feedback. Compatibilizar o conteúdo novo com o caso demonstrativo pronto.
 
@@ -241,7 +248,18 @@ técnico bloqueados; consulta concluída sem publicação bloqueada; resultados/
 corretos; autoria e encadeamento de correções auditáveis; ausência de diagnóstico
 automático apresentado como decisão clínica. Smokes desktop/mobile proporcionais.
 
-Dependência: PR 04 + decisão explícita de quem/o que publica em `ready`.
+Complemento D04 aprovado: médico ativo atribuído/clínica, completed, build_summary
+fake bem-sucedido/ai.v1 atual, aceite e fontes/proveniência válidos. Revalida resultado
+internamente antes de ready; não enfraquece leitura. Publicação, apresentação,
+snapshots e auditoria sem payload são atômicos. Referências: [conceito](README.md#19-publicação-e-revisão-pr-05--complemento-d04-aprovado),
+[validação segura](../deploy.md). Dependência: PR #12; produção não autorizada.
+
+Aceite conservador: >=1 item de síntese; vazio/attention-only bloqueados. Repetição
+da MESMA publicação válida é idempotente; publicar outra execução em ready negado.
+Obsolescência registra marcador monotônico de nova validação e execution obsolete,
+mantém conteúdo/auditoria/status operacional; nenhum reaproveitamento automático
+mesmo após restauração do contexto. Republicação/revalidação ready PENDENTES: não
+inventadas para contornar bloqueio. Legado exige fixture explícita, não apenas ready.
 
 ## 9. PR 06 — Testes integrados e handoff
 
@@ -268,7 +286,7 @@ na sprint posterior, não nesta PR.
 | D01 | Aprovada versão/evidência exclusivamente simulada; texto jurídico, evidência real e representação pendentes | PR 01 técnica; produção não autorizada |
 | D02 | Aprovada matriz simulada com negação por padrão e local_simulation; atores/origens de produção pendentes | PR 01 técnica; produção não autorizada |
 | D03 | Aprovados estados finais sem reabertura/timeout automático; critérios de encerramento produtivo pendentes | PR 01 preserva grafo; nenhuma automação |
-| D04 | Aprovada fronteira completed != ready e serviço autorizado; critérios/ator de publicação pendentes | PR 01 invariantes; PR 05 implementará publicação |
+| D04 | Complemento técnico aprovado 14/10/2026: médico atribuído/clínica, completed e build_summary fake validado/atual/aceite; ready para revisão, sem aprovação clínica; republicação/produção pendentes | PR 05 simulada; sem merge ou liberação real |
 | D05 | Proposta técnica do simulador implementada por autorização da PR 02; contrato/namespace/autenticação/ordem de canais reais continuam pendentes | PR 02 simulado; canais reais não autorizados |
 | D06 | Aprovada técnica fictícia: materialização/proveniência, snapshots da estrutura existente e histórico ready restrito; contrato IA separado na PR 04/D07, retenção/storage produtivos/D08 pendentes | PR 03; produção não autorizada |
 | D07 | Aprovada técnica fictícia em 14/10/2026: ai.v1/port/fake, limites, execução síncrona, retry explícito e obsolescência; contrato/handoff aguardam revisão, IA real não autorizada | PR 04; acordo/handoff do desenvolvedor de IA pendente |
@@ -331,6 +349,17 @@ contorna gates; serviço incompleto pode bloquear liberação legítima.
 Consequências: PR 01 preserva a fronteira; PR 05 implementa a publicação após
 aprovação. `ready` significa disponível para revisão, não aprovação clínica;
 casos incompletos seguem bloqueados até decisão explícita da equipe.
+
+Complemento D04 autorizado expressamente pelo prompt PR 05 em 14/10/2026,
+exclusivamente fictício: quem publica é médico ativo atribuído/clínica, somente
+completed com build_summary fake válido/atual e aceite simulado consistente.
+Publicação registra execução/contexto/fontes/responsável/tempo/simulação e muda
+para ready explicitamente, sem alterar o grafo comum. Não aprova laudo, assinatura,
+consentimento jurídico, prontuário, resultados reais ou critérios produtivos.
+Escolhas técnicas conservadoras: não publicar síntese vazia/attention-only, não
+sobrescrever itens prévios, não republicar ready; bloquear/auditar obsolescência
+sem apagar dados ou mudar estados. Evolução de revalidação/republicação depende
+de decisão da equipe, sem reabertura silenciosa pela restauração de contexto.
 
 Estas quatro aprovações limitam-se à simulação técnica; não constituem decisões
 jurídicas, clínicas ou funcionais definitivas para produção. A aprovação veio do
@@ -424,6 +453,35 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — PR 03 publicada e CI da implementação | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11), base `feature/pre-ai-event-ingestion`, commit `45b485e` | [CI 38606894698](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38606894698) aprovada em PostgreSQL 17.11: 157 testes sem skips, seis concorrentes e upgrade incremental. Check/drift/migrate/demo duas vezes aprovados. Sem revisão formal/merge; commit documental subsequente exige nova CI do HEAD final |
 | 14/10/2026 — CI final da base PR 03 | GitHub #11, HEAD `6f91164` | [CI 38607102409](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38607102409) aprovada, PostgreSQL 17.11, 157 testes sem skips; #8–#11 abertas/intactas |
 | 14/10/2026 — PR 04 publicada e CI da implementação | [GitHub #12](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/12), base `feature/pre-ai-traceability`, commit `1a4183f` | [CI 38654636895](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38654636895) aprovada, PostgreSQL 17.11, 199 testes sem skips (oito concorrentes e upgrade), 26,518 s. Check/drift/migrate/demo duas vezes aprovados. Contrato/handoff em revisão, sem aprovação/merge. Commit documental seguinte exige nova CI do HEAD final |
+| 14/10/2026 — CI final da base PR 04 | GitHub #12, HEAD `c3d8c2f` | [CI 38654856975](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38654856975) aprovada: PostgreSQL 17.11, 199 testes sem skips, 26,962 s. #8–#12 abertas/intactas |
+| 14/10/2026 — PR 05 publicada e CI da implementação | [GitHub #13](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/13), base `feature/pre-ai-orchestration`, commit `d7314b5` | [CI 38659435529](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38659435529) aprovada em PostgreSQL 17.11: 219 testes sem skips (dez concorrentes e upgrade), 19,653 s. Check/drift/migrate/demo duas vezes aprovados. Sem revisão formal/merge; commit documental seguinte exige nova CI do HEAD final |
+
+Registro PR 05 publicada para revisão: ClinicalPublication, validação interna reutilizada
+da PR 04, publicação explícita, gate clínico comum, autoria/revisões transacionais,
+legado explícito, POST/CSRF no painel e marcação de simulação. Migração 0010 aditiva,
+sem mudar histórico 0001–0009; marca somente fixture-base reconhecida, não todo ready.
+Guarda necessidade de validação/momento/ator, conserva publicação e status; sem
+republicação automática. Repetição da última correção idêntica pelo mesmo ator
+não duplica snapshots. Contrato/port/fake, dependências e grafo não mudaram.
+Conceito/ROADMAP/deploy/state-engine/docs/ai atualizados; README ganhou precisão
+da cadeia. AGENTS/CONTRIBUTING/CI revisados, sem ajuste necessário: políticas e
+PG17 para qualquer base já atendem. Testes antigos preservados com fixtures explícitas
+e setup de migração separado do esquema histórico; nenhuma asserção removida.
+Primeira regressão encontrou fixture ready sem marcador e uso de modelo atual
+em esquema histórico; corrigidos. Rodada intermediária: 218 testes, 208 aprovados,
+10 concorrentes ignorados SQLite, 43,434 s. Novo teste de bloqueio persistente
+também passou. Validação local: check/drift/migrate --plan aprovados; 219 testes,
+209 aprovados e 10 concorrentes ignorados no SQLite, 63,568 s na repetição final.
+Todos os 199 testes anteriores preservados e 20 novos. Rodada conjunta final de testes de publicação
+e visuais: 22 testes, 20 aprovados e 2 PostgreSQL ignorados, 29,459 s.
+Smokes desktop/mobile dashboard_smoke/browser_smoke/publication_smoke aprovados
+no banco temporário, incluindo publicação, apontamento, correção e feedback.
+Novo publication_smoke passou após ajuste de seletor do PRÓPRIO smoke.
+67 links locais válidos antes do registro de publicação; CI da implementação
+aprovada conforme tabela, HEAD documental final exige nova execução. Capturas inspecionadas; campos sem
+idade agora não exibem None anos, sem ampliar cadastro. Suíte visual é opt-in,
+não novo gate CI. Sem PostgreSQL local; concorrência validada pela CI real. Bancos/portas
+preservados, nenhum seed/reset/migrate neles, capturas ignoradas fora do commit.
 
 Registro PR 04 publicada para revisão: ai.v1/AIProvider/FakeAIProvider, orquestrador,
 AIExecution/AIAttempt/AIExecutionSource e migração aditiva 0009. Reserva e aceitação
@@ -514,17 +572,20 @@ real de homologação/produção inexistente; é gate futuro, não resultado apr
 
 Consentimento real, catálogo jurídico de termos, ingestão por canais reais,
 processamento de IA real e pipeline de publicação clínica não existem. Contrato
-ai.v1/fake/processamento técnico existem na branch PR 04 para revisão. Rastreabilidade
-de fontes/correções é parcial; notas/correções/feedback não registram usuário;
+ai.v1/fake/processamento técnico existem na branch PR 04 para revisão; PR 05 liga
+publicação/revisão SIMULADAS. Interações novas registram usuário e correções com
+snapshots; autoria legada continua desconhecida/nula. Rastreabilidade produtiva
+e revalidação/republicação ready permanecem pendentes;
 o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídia
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo: conferir CI do HEAD final da PR 04/#12 após registro documental e
-aguardar revisão técnica. #8–#11 intactas, nenhum merge autorizado. Aguardar
+Próximo passo desta execução: conferir CI do HEAD documental final da PR #13;
+depois aguardar revisão técnica/humana da PR 05. #8–#12 intactas,
+nenhum merge autorizado. Aguardar
 revisão/aprovação do contrato e handoff antes de iniciar IA independente; publicação
-não satisfaz esse gate. Não iniciar PR 05 automaticamente. Integração do
-versionamento/publicação às ações médicas fica na PR 05 mediante aprovação própria.
+não satisfaz esse gate. PR 06 é próximo incremento planejado, mas não autorizado
+automaticamente; parar após esta entrega. Não iniciar PR 06 nem fazer merge.
 
 ## 14. Registro obrigatório em cada entrega
 

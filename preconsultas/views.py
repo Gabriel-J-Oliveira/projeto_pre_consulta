@@ -15,6 +15,8 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from .demo_media import DEMO_MEDIA_FILES
 from .permissions import doctor_for, doctor_consultations, reception_clinics
+from .clinical_access import require_clinical, clinical_guard
+from .publication import PublicationError, publication_candidate, publish_consultation, review_action
 from .forms import (
     CorrectionForm,
     DoctorNoteForm,
@@ -81,7 +83,7 @@ def _effective_scheduled_for(consultation, today=None):
     return timezone.make_aware(naive_value, timezone.get_current_timezone())
 
 
-def _decorate_appointment(consultation, today=None):
+def _decorate_appointment(consultation, today=None, actor=None):
     consultation.display_scheduled_for = _effective_scheduled_for(consultation, today)
     presentation = STATUS_PRESENTATION[consultation.status]
     consultation.status_css = presentation["css"]
@@ -89,6 +91,16 @@ def _decorate_appointment(consultation, today=None):
     consultation.can_open = (
         consultation.status == Consultation.STATUS_READY
     )
+    consultation.publish_execution_id = None
+    if actor is not None:
+        if consultation.can_open:
+            try:
+                require_clinical(consultation, actor=actor, lock=True)
+            except PermissionDenied:
+                consultation.can_open = False
+                consultation.status_help = "Material bloqueado; exige nova validação explícita."
+        elif consultation.status == Consultation.STATUS_COMPLETED:
+            consultation.publish_execution_id = publication_candidate(consultation.pk, actor=actor)
     consultation.detail_url = (
         reverse("preconsultas:demo") if consultation.slug == DEMO_SLUG
         else reverse("preconsultas:detail", args=[consultation.slug])
@@ -102,7 +114,8 @@ def _decorate_operational_events(consultation):
     events = list(consultation.operational_events.all())
     for event in events:
         event.display_occurred_at = timezone.localtime(event.occurred_at)
-        if event.kind not in {OperationalEvent.KIND_STATE_CHANGED, OperationalEvent.KIND_CONSENT_RECORDED}:
+        if (event.kind not in {OperationalEvent.KIND_STATE_CHANGED, OperationalEvent.KIND_CONSENT_RECORDED}
+                and not (event.kind == OperationalEvent.KIND_READY and event.origin == "local_simulation")):
             event.display_occurred_at += delta
     consultation.display_events = events
     return consultation
@@ -110,17 +123,19 @@ def _decorate_operational_events(consultation):
 
 def _consultation(request, slug=DEMO_SLUG):
     consultation = get_object_or_404(
-        doctor_consultations(request.user).select_related("patient", "doctor", "clinic"),
+        doctor_consultations(request.user).select_for_update().select_related("patient", "doctor", "clinic"),
         slug=slug,
     )
     if consultation.status != Consultation.STATUS_READY:
         raise PermissionDenied
+    require_clinical(consultation, actor=request.user, lock=True)
     consultation.scheduled_for = _effective_scheduled_for(consultation)
     return consultation
 
 
 @login_required
 @require_GET
+@clinical_guard
 def dashboard(request):
     doctor = doctor_for(request.user)
     today = timezone.localdate()
@@ -132,7 +147,7 @@ def dashboard(request):
         doctor_consultations(request.user).select_related("patient", "doctor", "clinic")
     )
     for appointment in appointments:
-        _decorate_appointment(appointment, today)
+        _decorate_appointment(appointment, today, actor=request.user)
     appointments.sort(key=lambda item: item.display_scheduled_for)
 
     clinics = sorted(
@@ -192,7 +207,7 @@ def dashboard(request):
             "empty_state": empty_state,
             "indicators": {
                 "total": len(day_appointments),
-                "ready": sum(item.status == Consultation.STATUS_READY for item in day_appointments),
+                "ready": sum(item.can_open for item in day_appointments),
                 "progress": sum(item.status == Consultation.STATUS_IN_PROGRESS for item in day_appointments),
             },
         },
@@ -357,6 +372,7 @@ def _media_state(source):
 
 @login_required
 @require_GET
+@clinical_guard
 def demo(request, slug=DEMO_SLUG):
     consultation = _consultation(request, slug)
     items = list(
@@ -408,14 +424,13 @@ def _form_error(form):
 
 @login_required
 @require_POST
+@clinical_guard
 def add_note(request, slug=DEMO_SLUG):
     consultation = _consultation(request, slug)
     form = DoctorNoteForm(request.POST)
     if not form.is_valid():
         return _form_error(form)
-    note = form.save(commit=False)
-    note.consultation = consultation
-    note.save()
+    review_action(consultation.pk, actor=request.user, action="note", data=request.POST)
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"ok": True, "message": "Apontamento salvo na demonstração."})
     messages.success(request, "Apontamento salvo na demonstração.")
@@ -424,6 +439,7 @@ def add_note(request, slug=DEMO_SLUG):
 
 @login_required
 @require_POST
+@clinical_guard
 def correct_item(request, slug=DEMO_SLUG):
     consultation = _consultation(request, slug)
     form = CorrectionForm(request.POST)
@@ -434,14 +450,7 @@ def correct_item(request, slug=DEMO_SLUG):
         id=form.cleaned_data["summary_item_id"],
         consultation=consultation,
     )
-    updates = item.corrections.filter(action=Correction.ACTION_UPDATE)
-    previous_value = updates.last().new_value if updates.exists() else item.original_value
-    correction = Correction.objects.create(
-        summary_item=item,
-        action=form.cleaned_data["action"],
-        previous_value=previous_value,
-        new_value=form.cleaned_data["new_value"].strip(),
-    )
+    correction = review_action(consultation.pk, actor=request.user, action="correction", data=request.POST)
     message = (
         "Informação removida apenas da visualização; a fonte original foi preservada."
         if correction.action == Correction.ACTION_HIDE
@@ -460,6 +469,7 @@ def correct_item(request, slug=DEMO_SLUG):
 
 @login_required
 @require_POST
+@clinical_guard
 def add_feedback(request, slug=DEMO_SLUG):
     consultation = _consultation(request, slug)
     form = FeedbackForm(request.POST)
@@ -473,7 +483,7 @@ def add_feedback(request, slug=DEMO_SLUG):
             consultation=consultation,
         )
     kind = form.cleaned_data["kind"]
-    Feedback.objects.create(consultation=consultation, summary_item=item, kind=kind)
+    review_action(consultation.pk, actor=request.user, action="feedback", data=request.POST)
     return JsonResponse(
         {
             "ok": True,
@@ -484,6 +494,7 @@ def add_feedback(request, slug=DEMO_SLUG):
 
 @login_required
 @require_GET
+@clinical_guard
 def attachment_status(request, source_key):
     source = get_object_or_404(
         SourceItem,
@@ -491,6 +502,7 @@ def attachment_status(request, source_key):
         source_key=source_key,
         kind__in=[SourceItem.KIND_PDF, SourceItem.KIND_AUDIO],
     )
+    require_clinical(source.consultation, actor=request.user, lock=True)
     state = _media_state(source)
     return JsonResponse(
         {
@@ -506,6 +518,7 @@ def attachment_status(request, source_key):
 
 @login_required
 @require_GET
+@clinical_guard
 def attachment_content(request, source_key):
     source = get_object_or_404(
         SourceItem,
@@ -513,6 +526,7 @@ def attachment_content(request, source_key):
         source_key=source_key,
         kind__in=[SourceItem.KIND_PDF, SourceItem.KIND_AUDIO],
     )
+    require_clinical(source.consultation, actor=request.user, lock=True)
     path = _file_for(source)
     if not path or not path.is_file():
         raise Http404("Arquivo demonstrativo ainda não fornecido.")
@@ -523,3 +537,17 @@ def attachment_content(request, source_key):
         as_attachment=False,
         filename=path.name,
     )
+
+
+@login_required
+@require_POST
+def publish(request, slug):
+    consultation = get_object_or_404(doctor_consultations(request.user), slug=slug)
+    try:
+        value = request.POST.get("execution_id", "")
+        if not 1 <= len(value) <= 19 or not value.isascii() or not value.isdigit():
+            raise PublicationError()
+        publish_consultation(consultation.pk, int(value), actor=request.user)
+    except PublicationError:
+        return JsonResponse({"ok": False, "message": "Publicação indisponível; exige nova validação explícita."}, status=409)
+    return redirect("preconsultas:detail", slug=slug)

@@ -48,7 +48,7 @@ class OrchestrationTests(TestCase):
 
     def state(self, status):
         # Fixture ONLY; orchestration never publishes/advances the consultation.
-        Consultation.objects.filter(pk=self.case.pk).update(status=status)
+        Consultation.objects.filter(pk=self.case.pk).update(status=status, legacy_demo=(status == "ready"))
 
     def legacy(self):
         return SourceItem.objects.create(consultation=self.case, source_key="legacy-ai-ficticia",
@@ -473,15 +473,15 @@ class OrchestrationMigrationTests(TransactionTestCase):
         connection = connections["default"]
         executor = MigrationExecutor(connection)
         before = [("preconsultas", "0008_source_provenance_summary_revisions")]
+        case, reception, doctor, source_id = orchestration_fixture()
+        source_values = dict(SourceItem.objects.filter(pk=source_id).values().get())
         executor.migrate(before)
         try:
-            case, reception, doctor, source_id = orchestration_fixture()
-            source_values = dict(SourceItem.objects.filter(pk=source_id).values().get())
             source = SourceItem.objects.get(pk=source_id)
-            item = SummaryItem.objects.create(consultation=case, item_key="upgrade-ai-ficticio", section="Teste",
-                                              label="Teste", original_value="Fictício", attribution="ai")
-            item.sources.add(source)
             old = executor.loader.project_state(before).apps
+            item = old.get_model("preconsultas", "SummaryItem").objects.create(consultation_id=case.pk, item_key="upgrade-ai-ficticio", section="Teste",
+                                              label="Teste", original_value="Fictício", attribution="ai")
+            item.sources.add(source.pk)
             old.get_model("preconsultas", "SummaryRevision").objects.create(
                 consultation_id=case.pk, summary_item_id=item.pk, logical_key=item.item_key, number=1,
                 created_at=timezone.now(), created_by_id=doctor.pk, section="Teste", label="Teste", attribution="ai",

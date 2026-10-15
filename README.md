@@ -15,9 +15,11 @@ Referências oficiais da trilha Pré-IA:
 - [Contrato técnico simulado ai.v1](docs/ai/README.md) e [handoff para IA](docs/ai/handoff.md).
 - [Política de colaboração/documentação](CONTRIBUTING.md) e [instruções do agente](AGENTS.md).
 
-PR 00 é preparação documental. A cadeia empilhada PRs 01–04 implementa partes
+PR 00 é preparação documental. A cadeia empilhada PRs 01–05 implementa partes
 simuladas da trilha, ainda em revisão, sem merge ou IA/WhatsApp reais. Contrato
 e handoff da PR 04 precisam de aprovação humana; CI/publicação não a substituem.
+Publicação/revisão da PR 05 são somente simuladas e explícitas, com dados fictícios;
+ready não é aprovação clínica. Fluxo/gates e compatibilidade estão no contexto.
 
 A base histórica está integrada em `main`; os incrementos empilhados ainda não.
 O [registro da migração de repositório](docs/repository-migration.md)
