@@ -56,7 +56,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | PR 02 — Entrada unificada | Em revisão; PR aberta, sem merge | PR #9 como base empilhada; D05 restrita ao simulador | `feature/pre-ai-event-ingestion` (real) | [GitHub #10](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/10); implementação `fcd6ac8874988b55e64a9fd1987c605588f3eaf6`; registro de publicação em commit subsequente |
 | PR 03 — Persistência/rastreabilidade | Em revisão; PR aberta, sem merge | PR #10 como base empilhada; D06 técnica aprovada | `feature/pre-ai-traceability` (real) | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11); implementação `45b485e982247c9f05ddce28777fb081363863a3`; registro de publicação em commit subsequente |
 | PR 04 — Orquestrador/contrato IA | Em revisão; PR aberta, sem merge | PR #11 como base empilhada; D07 técnica aprovada | `feature/pre-ai-orchestration` (real) | [GitHub #12](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/12); implementação `1a4183f39523b7142641d1b3421ded07bd4d3840`; registro de publicação em commit subsequente |
-| PR 05 — Revisão médica | Em execução local | PR #12 empilhada; complemento D04 técnico aprovado | `feature/pre-ai-medical-review` (real) | Commit/PR ainda não criados |
+| PR 05 — Revisão médica | Em revisão; PR aberta, sem merge | PR #12 empilhada; complemento D04 técnico aprovado | `feature/pre-ai-medical-review` (real) | [GitHub #13](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/13); implementação `d7314b5d7dfbc59151deea8a312100baf80e36f1`; registro de publicação em commit subsequente |
 | PR 06 — Testes/handoff | Pendente | PR 05 + critérios operacionais D08 | `chore/pre-ai-handoff` (proposta) | Não criados |
 
 Sequência preservada: 00 → 01 → 02 → 03 → 04 → 05 → 06. Contratos podem ser
@@ -454,8 +454,9 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — CI final da base PR 03 | GitHub #11, HEAD `6f91164` | [CI 38607102409](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38607102409) aprovada, PostgreSQL 17.11, 157 testes sem skips; #8–#11 abertas/intactas |
 | 14/10/2026 — PR 04 publicada e CI da implementação | [GitHub #12](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/12), base `feature/pre-ai-traceability`, commit `1a4183f` | [CI 38654636895](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38654636895) aprovada, PostgreSQL 17.11, 199 testes sem skips (oito concorrentes e upgrade), 26,518 s. Check/drift/migrate/demo duas vezes aprovados. Contrato/handoff em revisão, sem aprovação/merge. Commit documental seguinte exige nova CI do HEAD final |
 | 14/10/2026 — CI final da base PR 04 | GitHub #12, HEAD `c3d8c2f` | [CI 38654856975](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38654856975) aprovada: PostgreSQL 17.11, 199 testes sem skips, 26,962 s. #8–#12 abertas/intactas |
+| 14/10/2026 — PR 05 publicada e CI da implementação | [GitHub #13](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/13), base `feature/pre-ai-orchestration`, commit `d7314b5` | [CI 38659435529](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38659435529) aprovada em PostgreSQL 17.11: 219 testes sem skips (dez concorrentes e upgrade), 19,653 s. Check/drift/migrate/demo duas vezes aprovados. Sem revisão formal/merge; commit documental seguinte exige nova CI do HEAD final |
 
-Registro PR 05 em execução local: ClinicalPublication, validação interna reutilizada
+Registro PR 05 publicada para revisão: ClinicalPublication, validação interna reutilizada
 da PR 04, publicação explícita, gate clínico comum, autoria/revisões transacionais,
 legado explícito, POST/CSRF no painel e marcação de simulação. Migração 0010 aditiva,
 sem mudar histórico 0001–0009; marca somente fixture-base reconhecida, não todo ready.
@@ -471,15 +472,15 @@ em esquema histórico; corrigidos. Rodada intermediária: 218 testes, 208 aprova
 10 concorrentes ignorados SQLite, 43,434 s. Novo teste de bloqueio persistente
 também passou. Validação local: check/drift/migrate --plan aprovados; 219 testes,
 209 aprovados e 10 concorrentes ignorados no SQLite, 63,568 s na repetição final.
-Todos os 199 testes
-anteriores preservados e 20 novos. Rodada conjunta final de testes de publicação
+Todos os 199 testes anteriores preservados e 20 novos. Rodada conjunta final de testes de publicação
 e visuais: 22 testes, 20 aprovados e 2 PostgreSQL ignorados, 29,459 s.
 Smokes desktop/mobile dashboard_smoke/browser_smoke/publication_smoke aprovados
 no banco temporário, incluindo publicação, apontamento, correção e feedback.
 Novo publication_smoke passou após ajuste de seletor do PRÓPRIO smoke.
-67 links locais válidos; CI desta entrega ainda pendente. Capturas inspecionadas; campos sem
+67 links locais válidos antes do registro de publicação; CI da implementação
+aprovada conforme tabela, HEAD documental final exige nova execução. Capturas inspecionadas; campos sem
 idade agora não exibem None anos, sem ampliar cadastro. Suíte visual é opt-in,
-não novo gate CI. Sem PostgreSQL local; concorrência exige CI real. Bancos/portas
+não novo gate CI. Sem PostgreSQL local; concorrência validada pela CI real. Bancos/portas
 preservados, nenhum seed/reset/migrate neles, capturas ignoradas fora do commit.
 
 Registro PR 04 publicada para revisão: ai.v1/AIProvider/FakeAIProvider, orquestrador,
@@ -579,8 +580,8 @@ o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídi
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo desta execução: concluir validação final/publicação empilhada da PR 05
-e conferir CI do HEAD final; depois aguardar revisão técnica. #8–#12 intactas,
+Próximo passo desta execução: conferir CI do HEAD documental final da PR #13;
+depois aguardar revisão técnica/humana da PR 05. #8–#12 intactas,
 nenhum merge autorizado. Aguardar
 revisão/aprovação do contrato e handoff antes de iniciar IA independente; publicação
 não satisfaz esse gate. PR 06 é próximo incremento planejado, mas não autorizado
