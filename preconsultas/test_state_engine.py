@@ -175,7 +175,7 @@ class StateEngineTests(TestCase):
         self.assert_unchanged(self.case, Consultation.STATUS_NOT_STARTED, 0)
 
     def test_legacy_ready_remains_visible_and_no_transition_can_create_it(self):
-        Consultation.objects.filter(pk=self.case.pk).update(status=Consultation.STATUS_READY)
+        Consultation.objects.filter(pk=self.case.pk).update(status=Consultation.STATUS_READY, legacy_demo=True)
         self.client.force_login(self.doctor_user)
         response = self.client.get(reverse("preconsultas:detail", args=[self.case.slug]))
         self.assertEqual(response.status_code, 200)

@@ -6,6 +6,7 @@ from . import views
 app_name = "preconsultas"
 
 urlpatterns = [
+    path("pre-consultas/<slug:slug>/publicar/", views.publish, name="publish"),
     path("painel/", views.dashboard, name="dashboard"),
     path("pre-consultas/demo/", views.demo, name="demo"),
     path("pre-consultas/demo/apontamentos/", views.add_note, name="add_note"),

@@ -103,6 +103,7 @@ class PermissionTests(TestCase):
     def test_other_doctor_can_open_own_ready_case_without_demo_identity(self):
         case = Consultation.objects.filter(doctor=self.other_doctor).get()
         case.status = Consultation.STATUS_READY
+        case.legacy_demo = True  # Explicit demo fixture, not a production ready bypass.
         case.save()
         self.client.force_login(self.other_user)
         detail = reverse("preconsultas:detail", args=[case.slug])

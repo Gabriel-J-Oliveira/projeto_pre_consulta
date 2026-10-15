@@ -96,7 +96,7 @@ python manage.py showmigrations preconsultas --plan
 python manage.py migrate
 ```
 
-Migrações de domínio nesta branch PR 04: `0001`–`0009`; não apagar, renumerar, fazer
+Migrações de domínio nesta branch PR 05: `0001`–`0010`; não apagar, renumerar, fazer
 `--fake` ou reiniciar o histórico. PR 00 não cria/aplica migração. SQLite usa
 `db.sqlite3` da cópia atual; transferência de dados para PostgreSQL não é
 automática nem está aprovada como operação desta preparação.
@@ -161,6 +161,49 @@ com aprovação de concorrência. CI existente PG17 em qualquer base executa tod
 Execuções `running` após interrupção/falha de finalização exigem investigação humana;
 sem timeout/recuperação/retry automático e sem remoção de linhas por conveniência.
 Port/fake/contrato/retry e limites: [referência IA](ai/README.md).
+
+### Publicação/revisão simuladas — PR 05
+
+`0010_clinical_publication` acrescenta ClinicalPublication, vínculo de itens,
+actor nullable em notas/correções/feedback e identificação de fixture legada.
+Autoria anterior permanece nula; nenhum aceite, execução, publicação histórica
+ou fonte é inventado. RunPython marca SOMENTE o caso-base ready conhecido com
+identidade fictícia, fontes/síntese do seed e sem ingestão/execução; outros ready
+permanecem bloqueados. A operação não altera seus estados nem apaga conteúdo.
+load_demo marca sua fixture explicitamente, continua ferramenta de bootstrap,
+nunca executar no banco preservado para validar essa entrega.
+
+Revisar migrate --plan e aplicar apenas no banco/cópia autorizados para PR 05.
+Upgrade 0009→0010 é ensaiado no banco temporário dos testes. Downgrade remove
+auditoria/campos de autoria: requer plano/autorização, sem rollback automático.
+Não há nova dependência Python/configuração/credencial/serviço externo.
+
+```powershell
+python manage.py test preconsultas.test_publication
+python manage.py test
+```
+
+Testes criam completed/aceite fictícios e execução fake; médico atribuído/clínica
+publica pelo serviço ou POST/CSRF do painel. Conteúdo só abre após publicação.
+Serviço não chama provedor nem cria usuário padrão. Testes PG ensaiam publicação
+inicial e correções concorrentes; ignorados no SQLite, não confundir com aprovação.
+Publicação obsoleta é preservada/bloqueada; marca momento/usuário de necessidade
+de validação e execução obsolete. Nenhuma mudança de estado ou republicação automática.
+
+Smokes médicos opt-in reutilizam scripts existentes com Node/Playwright/Edge:
+
+```powershell
+python manage.py test preconsultas.visual_smoke
+```
+
+Esse módulo NÃO é descoberto pela suíte padrão/CI. StaticLiveServerTestCase cria
+banco temporário e porta livre (não 8000/8001); credencial aleatória só no processo
+de teste, sem imprimir/salvar segredo ou credencial padrão. Executa dashboard_smoke,
+browser_smoke e publication_smoke em desktop/mobile; seed/feedback/correção somente
+no banco TEMPORÁRIO. Capturas de dados fictícios em subdiretórios UUID de artifacts/
+ignorados; não incluir no commit. Node deve resolver Playwright instalado (NODE_PATH
+do runtime local se necessário); não é nova dependência da aplicação/CI. Referência
+Windows de Edge permanece a dos smokes existentes. Nenhum servidor preservado é parado.
 
 ### Simulador de ingestão — somente banco fictício isolado
 

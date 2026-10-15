@@ -86,6 +86,7 @@ class Consultation(models.Model):
         help_text="Valor demonstrativo; a regra definitiva ainda não foi definida.",
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    legacy_demo = models.BooleanField(default=False, editable=False)
     demo_day_offset = models.SmallIntegerField(
         null=True,
         blank=True,
@@ -183,9 +184,16 @@ class SummaryItem(models.Model):
     attribution = models.CharField(max_length=20, choices=ATTRIBUTION_CHOICES)
     display_order = models.PositiveIntegerField(default=0)
     sources = models.ManyToManyField(SourceItem, related_name="summary_items")
+    publication = models.ForeignKey("ClinicalPublication", null=True, blank=True, on_delete=models.PROTECT,
+                                    related_name="items")
+    publication_key = models.CharField(max_length=120, blank=True)
+    publication_kind = models.CharField(max_length=10, blank=True)
+    publication_basis = models.CharField(max_length=20, blank=True)
 
     class Meta:
         ordering = ["display_order", "id"]
+        constraints = [models.UniqueConstraint(fields=["publication", "publication_kind", "publication_key"],
+                                               name="unique_publication_item")]
 
     def __str__(self):
         return self.label
@@ -197,6 +205,8 @@ class DoctorNote(models.Model):
     )
     text = models.TextField(max_length=1200)
     created_at = models.DateTimeField(auto_now_add=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+                              related_name="clinical_notes")
 
 
 class Correction(models.Model):
@@ -214,6 +224,8 @@ class Correction(models.Model):
     previous_value = models.TextField()
     new_value = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+                              related_name="clinical_corrections")
 
     class Meta:
         ordering = ["created_at", "id"]
@@ -239,6 +251,8 @@ class Feedback(models.Model):
     )
     kind = models.CharField(max_length=20, choices=KIND_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+                              related_name="clinical_feedback")
 
 
 class OperationalEvent(models.Model):
@@ -530,3 +544,35 @@ class AIExecutionSource(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Referências técnicas devem ser preservadas.")
+
+
+class ClinicalPublication(models.Model):
+    """Explicit initial simulated publication; not a signed clinical approval."""
+    consultation = models.OneToOneField(Consultation, on_delete=models.PROTECT, related_name="publication")
+    doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, related_name="publications")
+    clinic = models.ForeignKey(Clinic, on_delete=models.PROTECT, related_name="publications")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="clinical_publications")
+    execution = models.ForeignKey(AIExecution, on_delete=models.PROTECT, related_name="publications")
+    published_at = models.DateTimeField(editable=False)
+    context_id = models.CharField(max_length=64)
+    result_snapshot = models.JSONField()
+    source_snapshot = models.JSONField()
+    is_simulated = models.BooleanField(default=True, editable=False)
+    requires_validation_at = models.DateTimeField(null=True, blank=True, editable=False)
+    validation_requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                                on_delete=models.PROTECT, related_name="publication_validations")
+    event = models.OneToOneField(OperationalEvent, on_delete=models.PROTECT, related_name="clinical_publication")
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(is_simulated=True), name="publication_simulation_only")]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Publicações anteriores devem ser preservadas.")
+        if (self.execution.consultation_id != self.consultation_id or self.execution.operation != "build_summary"
+                or self.event.consultation_id != self.consultation_id):
+            raise ValidationError("Publicação inconsistente.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Publicações anteriores devem ser preservadas.")

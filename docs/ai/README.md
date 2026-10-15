@@ -28,7 +28,8 @@ DTO, retorna DTO ou lança `ProviderFailure`. Nunca define autorização ou esta
 Backend controla médico/clínica/consulta, aceite simulado atual, fontes, contexto,
 validação, persistência, tentativas e atualidade. IA controla prompts e qualidade
 semântica dentro do contrato; a validação estrutural NÃO certifica diagnóstico,
-ausência de alucinações ou segurança médica. Publicação futura fica na PR 05.
+ausência de alucinações ou segurança médica. Na branch PR 05, publicação simulada
+é serviço do backend autorizado explicitamente por médico; nunca ação do port.
 
 ## Requisição normativa
 
@@ -256,6 +257,31 @@ Processamento de completed é escrita técnica com recibo de IDs, não leitura c
 hash ou texto. `current_result` só médico/clínica e ready, revalidando aceite e
 atualidade; nenhuma mudança automática de Consultation.status/SummaryItem/Correction/
 SummaryRevision, nenhum OperationalEvent com dados clínicos ou log de payload.
+
+### Fronteira de consumo e publicação na PR 05
+
+Backend usa `_validated_result` INTERNAMENTE para revalidar ai.v1/contexto/fontes
+antes de publicação em completed, sob escopo de médico atribuído/clínica. Essa
+função não autoriza leitura e não é endpoint do provedor. O port, DTO e fake não
+mudaram; nenhuma promoção automática foi acrescentada ao orquestrador.
+
+`publication.publish_consultation` exige build_summary fake sucedido e atual,
+aceite consistente e >=1 item de síntese. Publicação inicial, fontes/itens,
+snapshots, auditoria sem conteúdo e completed→ready são atômicos. Pontos de
+atenção isolados não bastam; ready significa revisão, não aprovação clínica.
+ClinicalPublication mantém execução/resultado/contexto originais e referências.
+UI não exibe resultado técnico antes da confirmação. Novo caso ready sem
+publicação válida não ganha leitura; somente fixtures legadas explicitamente
+identificadas mantêm o fluxo anterior. Current_result de caso publicado só
+retorna sua execução selecionada e atual; não abre outras saídas técnicas.
+
+Detalhes/fontes/anexos/revisão/histórico revalidam publicação e atualidade.
+Obsolescência detectada preserva auditabilidade e registra necessidade de nova
+validação; execução obsolete e marcador de publicação impedem reabertura por
+mera restauração do contexto. Não altera status operacional, não republica ready.
+Correções médicas não modificam output do port ou fonte: actor e snapshots
+apresentacionais ficam separados do resultado técnico. Especificação do fluxo:
+[conceito PR 05](../planning/README.md#19-publicação-e-revisão-pr-05--complemento-d04-aprovado).
 
 ## Evolução
 

@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from .ai_contract import ContractError, ERROR_CODES, OPERATIONS, VERSION, fingerprint, token, validate_request, validate_response
 from .ai_provider import FakeAIProvider, ProviderFailure
+from .clinical_access import clinical_guard
 from .models import AIExecution, AIExecutionSource, AIAttempt, Consultation
 from .state_engine import require_consent, InvalidTransition
 from .traceability import _case, _check_source, _id
@@ -193,6 +194,7 @@ def execute(consultation_id, operation, *, actor, provider=None, retry=False):
         raise OrchestrationError("transaction_boundary") from None
 
 
+@clinical_guard
 def current_result(consultation_id, execution_id, *, actor):
     """Clinical read only ready; validate freshness AND output at consumption."""
     actor = _actor(actor)
@@ -200,21 +202,47 @@ def current_result(consultation_id, execution_id, *, actor):
     try:
         with transaction.atomic():
             case = _case(consultation_id, actor, clinical=True, lock=True)
+            from .models import ClinicalPublication
+            publication = ClinicalPublication.objects.filter(consultation=case).first()
+            if publication and publication.execution_id != execution_id:
+                raise PermissionDenied
             execution = AIExecution.objects.filter(pk=execution_id, consultation=case).first()
             if execution is None:
                 raise PermissionDenied
             if execution.status != "succeeded":
                 return None
             try:
-                request = _request(case, execution.operation, lock=True)
-                if request != execution.request or request["context_id"] != execution.context_id:
-                    raise ContractError("obsolete_context")
-                refs = list(execution.source_references.order_by("source_id").values("source_id", "version"))
-                if refs != [{"source_id": s["source_id"], "version": s["version"]} for s in request["sources"]]:
-                    raise ContractError("invalid_provenance")
-                return validate_response(execution.result, request)
+                return _validated_result(case, execution, lock=True)
             except (ContractError, OrchestrationError):
                 _stale(execution)
                 return None
     except DatabaseError:
         raise OrchestrationError("persistence_failure") from None
+
+
+def _validated_result(case, execution, *, lock=False):
+    """INTERNAL, no read authorization: caller must enforce read OR publication scope.
+
+    Allows completed validation without pretending clinical content is released.
+    No state mutation, no provider call, no public HTTP endpoint.
+    """
+    if (execution.consultation_id != case.pk or execution.status != "succeeded"
+            or execution.finished_at is None
+            or execution.contract_version != VERSION or execution.operation not in OPERATIONS):
+        raise ContractError("invalid_contract")
+    token(execution.provider_id)
+    token(execution.provider_version)
+    accepted = execution.attempts.order_by("-number").first()
+    if not accepted or accepted.status != "succeeded" or accepted.result != execution.result or accepted.finished_at is None:
+        raise ContractError("invalid_contract")
+    request = _request(case, execution.operation, lock=lock)
+    if request != execution.request or request["context_id"] != execution.context_id:
+        raise ContractError("obsolete_context")
+    identity = fingerprint({"context": execution.context_id, "provider": execution.provider_id,
+                            "provider_version": execution.provider_version})
+    if identity != execution.identity:
+        raise ContractError("context_mismatch")
+    refs = list(execution.source_references.order_by("source_id").values("source_id", "version"))
+    if refs != [{"source_id": s["source_id"], "version": s["version"]} for s in request["sources"]]:
+        raise ContractError("invalid_provenance")
+    return validate_response(execution.result, request)

@@ -22,6 +22,11 @@ exclusivamente fictícia; `feature/pre-ai-orchestration`, base PR #11 no SHA
 `6f91164ba8cb66c97c4a6daff159d6bf6fbffdb3`. Contrato e handoff em revisão,
 não aprovados só por publicação. Nenhum merge, IA real ou início de PR 05.
 
+Atualização PR 05: complemento D04 aprovado em 14/10/2026 somente pré-IA fictícia;
+`feature/pre-ai-medical-review` sobre PR #12, base
+`c3d8c2f58c6449727fd9289f43d9b99997dc546f`. Médico atribuído/clínica publica
+explicitamente completed→ready após validação build_summary. Sem merge ou PR 06.
+
 ## 1. Produto e estágio atual
 
 O objetivo é apoiar a preparação de consultas médicas: a recepção registra uma
@@ -83,6 +88,7 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
   à mensagem recebida, momento/operador da materialização. Legados continuam nulos.
 - `SummaryItem`: itens estruturados, atribuição e referências às fontes.
 - `DoctorNote`, `Correction`, `Feedback`: interações médicas persistidas.
+  PR 05 acrescenta actor opcional para novos registros; antigos continuam nulos.
 - `OperationalEvent`: linha do tempo operacional. Eventos do motor guardam
   estado anterior/novo, origem, usuário, data/hora real e marca de simulação.
 - `ConsentEvidence` (PR 01): consulta, referência da versão apresentada,
@@ -97,6 +103,10 @@ prontuário: serão criados somente quando essas funcionalidades entrarem no esc
 - `AIExecution`, `AIAttempt`, `AIExecutionSource` (PR 04): execução técnica privada,
   tentativas explícitas e referência fonte/versão, independentes de SummaryRevision.
   Request e resultado validado permanecem privados; não aparecem no Admin/UI.
+- `ClinicalPublication` (PR 05): publicação inicial simulada única por consulta,
+  médico/clínica/usuário, execução/contexto, momento, evento e snapshots de saída/
+  referências. Itens apresentados apontam à publicação/chave/kind/basis. Registro
+  original preservado; marcador monotônico de necessidade de validação é derivado.
 
 Migrações `0001`–`0003` preservam o protótipo original; `0004` acrescenta vínculos
 internos; `0005_operational_state_engine` acrescenta metadados opcionais de eventos
@@ -109,6 +119,10 @@ converter fontes/resumos existentes ou criar mensagens para registros histórico
 escolhas de imagem/simulação e tabelas de snapshots/referências. Sem backfill.
 `0009_ai_orchestration` cria somente as três tabelas técnicas/constraints, sem
 backfill de execuções, alteração de domínio ou migração de dados legados.
+`0010_clinical_publication` acrescenta publicação/autoria e identificação explícita
+de legado. Marca apenas o caso-base conhecido que coincide com fixture/escopo/
+fontes/síntese sem ingestão ou execução; não transforma todos ready em legados,
+não cria consentimento/publicação/autoria para registros antigos.
 
 ## 4. Autenticação e autorização são separadas
 
@@ -318,7 +332,8 @@ de mensagens/eventos simulados → fontes preservadas e dados versionados →
 orquestração determinística/FakeAIProvider → validação de resultado → publicação
 clínica controlada → revisão médica/correções/feedback. Gates e dependências
 ficam no [ROADMAP](ROADMAP.md). Hoje o cadastro e o simulador de estados existem;
-coleta/consentimento reais, pipeline e publicação de resultados novos não existem.
+coleta/consentimento reais não existem. A branch PR 05 implementa publicação
+controlada de resultados simulados, sem integração real ou pipeline automático.
 
 Interface prevista (a acordar com o desenvolvedor de IA em PR 04): o backend
 entrega contexto/fontes autorizados e versionados, por um contrato independente
@@ -396,7 +411,8 @@ nem declarar conclusão/CI por configuração ou intenção. Publicação da PR 
 empilhada foi autorizada; a execução atual autoriza também PR 02 empilhada,
 sem merge. Posteriormente, D06 e a implementação/publicação da PR 03 empilhada foram
 autorizadas expressamente. Posteriormente o prompt PR 04 aprovou D07 técnica e
-implementação/publicação empilhada; merge e PR 05 não estão autorizados.
+implementação/publicação empilhada. O prompt PR 05 aprovou complemento D04 e
+publicação/revisão empilhadas; merge e PR 06 não estão autorizados.
 
 ## 16. Contrato de ingestão PR 02 — D05 restrita à simulação
 
@@ -579,3 +595,64 @@ fila ou recuperação automática de reserva running após crash/falha finaliza�
 Locks/constraints não são WORM/RLS contra ORM/SQL privilegiados ou certificação
 semântica clínica. D08 e recuperação produtiva permanecem pendentes. IA independente
 só após aprovação humana do [handoff](../ai/handoff.md), sem aguardar PR 05/06.
+
+## 19. Publicação e revisão PR 05 — complemento D04 aprovado
+
+Médico ativo atual, consulta atribuída e clínica vinculada publica explicitamente
+uma consulta completed com execução build_summary fake bem-sucedida/ai.v1 atual,
+aceite simulado consistente e fontes/versionamento/referências válidos. Camada
+`ai_orchestration._validated_result` é INTERNAL: valida conteúdo sob autorização
+separada de publicação OU leitura, não é API de leitura clínica. Current_result
+mantém gate ready e exige publicação atual (ou fixture legada explícita); para novo
+caso só retorna a execução escolhida pela publicação. Não há ready temporário.
+
+`publication.publish_consultation` bloqueia consulta/fontes no PostgreSQL, revalida
+execução, registra ClinicalPublication/evento e cria SummaryItem com fontes/kind/
+key/basis rastreáveis. Chaves globais `pub-<id>-<kind>-<ordem>` não colidem com demo.
+Attribution AI mantém convenção existente, mas interface identifica SÍNTESE SIMULADA,
+nunca declaração autenticada do paciente. Pontos de atenção aparecem como observações
+para revisão, não diagnóstico/prescrição. Snapshot de saída/referências e resultado
+técnico original são preservados; publicação não substitui evidência original.
+Estado ready e snapshots iniciais são gravados na MESMA transação. Recibo é só
+publication_id/created. Mesma publicação repetida não duplica; outra execução em
+ready não publica. Exigir >=1 item de síntese é aceite conservador técnico: resposta
+vazia ou attention-only bloqueada, sem inventar conteúdo. Não sobrescrever itens
+prévios para publicar uma consulta híbrida; caso sem síntese técnica não ganha botão.
+
+Painel revela somente execução disponível e ação POST/CSRF, nunca texto técnico
+enquanto completed. Depois, usa a página clínica existente e suas fontes/ações.
+Novos casos sem idade não mostram “None anos”; não há campo novo no cadastro.
+Indicador de prontas conta acessibilidade clínica, sem mudar status persistido.
+
+`clinical_access.require_clinical` é gate comum de detalhes, anexos, escrita,
+proveniência, histórico e current_result. Verifica usuário ativo atual, médico/
+clínica, ready e validade de publicação/contexto/referências/itens. Locks da consulta
+e fontes acompanham leitura/escrita transacional. Fonte/metadado/resultado mudou:
+nega uniformemente, sem servir conteúdo antigo. ClinicalPublication guarda
+requires_validation_at/validation_requested_by uma única vez; execução torna-se
+obsolete, mantendo resultado e publicação. Guard desfaz escritas clínicas antes de
+registrar só metadados de invalidação. Restaurar conteúdo não remove o marcador.
+Painel mostra bloqueio; histórico exclui registros inválidos; status operacional
+permanece ready. Política de revalidação/republicação está PENDENTE, sem ação
+automática para contornar. Caller ORM/SQL/atomic privilegiado não é fronteira WORM/RLS.
+
+Compatibilidade: legacy_demo é False por padrão, não editável nos forms/Admin.
+Migração reconhece somente `demo-pronta` ready, paciente fictícia/CRM fictício/
+clínica do seed, nove fontes legadas exatas, doze itens e nenhuma ingestão/execução.
+`load_demo` marca explicitamente sua própria fixture conhecida; não é migração de
+registros genéricos nem concessão de autorização por slug/ready. Fixtures de testes
+históricos receberam marca EXPLÍCITA, sem alterar as asserções de isolamento; ensaios
+de migrações usam modelos históricos/fixtures criadas antes do downgrade temporário.
+Registros ready não identificados permanecem bloqueados, sem backfill clínico.
+
+`publication.review_action` revalida gates/item e grava actor em notas/correções/
+feedback. Correção e record_summary_revision são atômicos; captura antes e depois
+preserva valor original/fontes/resultado técnico. Repetição da última correção
+idêntica pelo mesmo ator não duplica correção/snapshot. Outras capturas têm número
+ordenado sob lock; ator da captura não é autoria retroativa de legados. Actor antigo
+nulo permanece nulo. Sem snapshots artificiais de notas ou feedback. Modelos
+clínicos/publicação continuam fora do Admin; sem endpoints novos de paciente/IA.
+
+Sem chamadas externas. Ready não é validação clínica; D08, segurança semântica,
+assinatura/laudo, consentimento real, recuperação/republicação e produção permanecem
+pendentes. Contrato/handoff IA ainda exigem aprovação humana própria.

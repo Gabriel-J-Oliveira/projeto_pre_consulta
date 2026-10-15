@@ -79,6 +79,8 @@
                   Abrir pré-consulta
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
+              {% elif next_appointment.publish_execution_id %}
+                <span class="no-action">Síntese técnica disponível; publique na agenda abaixo.</span>
               {% else %}
                 <span class="no-action">Nenhuma ação disponível</span>
               {% endif %}
@@ -173,7 +175,7 @@
                 </div>
                 <div class="appointment-patient" role="cell">
                   <span class="patient-avatar patient-avatar--small" aria-hidden="true">{{ appointment.patient.name|slice:":1" }}</span>
-                  <div><strong>{{ appointment.patient.name }}</strong><small>{{ appointment.patient.age }} anos</small></div>
+                  <div><strong>{{ appointment.patient.name }}</strong><small>{% if appointment.patient.age != None %}{{ appointment.patient.age }} anos{% else %}Cadastro fictício{% endif %}</small></div>
                 </div>
                 <div class="appointment-clinic" role="cell">
                   <strong>{{ appointment.clinic.name }}</strong>
@@ -191,6 +193,12 @@
                     </a>
                   {% elif appointment.can_open %}
                     <span class="featured-note">Em destaque acima</span>
+                  {% elif appointment.publish_execution_id %}
+                    <form method="post" action="{% url 'preconsultas:publish' appointment.slug %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="execution_id" value="{{ appointment.publish_execution_id }}">
+                      <button class="filter-button" type="submit">Publicar síntese simulada</button>
+                    </form>
                   {% else %}
                     <span class="locked-state" aria-label="Conteúdo clínico indisponível">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>

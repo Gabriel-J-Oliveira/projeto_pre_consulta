@@ -67,4 +67,9 @@ não são credenciais padrão. Não executar setup/seed/migrate no banco preserv
 
 Pendentes: qualidade/segurança semântica real, provedor/modelo/prompts produtivos,
 retenção/infra D08, consentimento real, cancelamento/recuperação de chamadas travadas
-e integração de publicação/revisão PR 05. Este handoff NÃO libera pacientes reais.
+e políticas produtivas de publicação/revisão. A branch PR 05 implementa somente
+publicação/revisão SIMULADAS, por médico autorizado, sem mudar port/DTO ai.v1.
+O dev IA não promove completed→ready nem altera fontes/atores/gates. O backend
+revalida para publicar ainda completed, mantendo o resultado técnico separado
+das correções/snapshots médicos. Obsolescência bloqueia consumo; revalidação/
+republicação ready permanece pendente. Este handoff NÃO libera pacientes reais.
