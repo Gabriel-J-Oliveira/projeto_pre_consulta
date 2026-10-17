@@ -1,7 +1,7 @@
 # Roadmap de execução Pré-IA
 
 Referência oficial de planejamento, resultados e próximo passo. Atualização:
-14/10/2026. Base auditada: `main`, SHA
+17/10/2026 (histórico original em 14/10/2026). Base auditada: `main`, SHA
 `1e199b4577d8a6c64b30c3744d4bea4adfd308bf`, confirmado igual ao remoto.
 Árvore inicial limpa; origem: `Gabriel-J-Oliveira/projeto_pre_consulta`.
 
@@ -33,6 +33,13 @@ build_summary fake bem-sucedido/válido/atual e aceite simulado. Base
 árvore inicial limpa; cadeia #8→#9→#10→#11→#12 aberta e ancestralidade confirmada.
 Implementação/publicação empilhadas autorizadas, sem merge ou início de PR 06.
 
+PR 06: execução em 17/10/2026 conforme prompt que atribui a 14/10/2026 aprovação
+do recorte D08 de testes/documentação/handoff. Base PR #13, SHA
+`640e0350aed3878fe4171f30bdc6e9ad4658f59e`, árvore inicial limpa, cadeia
+#8→#9→#10→#11→#12→#13 aberta e ancestralidade confirmada. Criada
+`chore/pre-ai-handoff` da referência remota, sem rebase/merge/alteração das anteriores.
+D08 produtiva e aprovação humana do handoff NÃO concedidas.
+
 Referências: [conceito e auditoria](README.md), [operação/deploy](../deploy.md),
 [estados atuais](../state-engine.md), [histórico da migração](../repository-migration.md),
 [política documental](../../CONTRIBUTING.md).
@@ -57,7 +64,7 @@ o incremento produtivo correspondente. Não inventar aprovação ou resultado de
 | PR 03 — Persistência/rastreabilidade | Em revisão; PR aberta, sem merge | PR #10 como base empilhada; D06 técnica aprovada | `feature/pre-ai-traceability` (real) | [GitHub #11](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/11); implementação `45b485e982247c9f05ddce28777fb081363863a3`; registro de publicação em commit subsequente |
 | PR 04 — Orquestrador/contrato IA | Em revisão; PR aberta, sem merge | PR #11 como base empilhada; D07 técnica aprovada | `feature/pre-ai-orchestration` (real) | [GitHub #12](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/12); implementação `1a4183f39523b7142641d1b3421ded07bd4d3840`; registro de publicação em commit subsequente |
 | PR 05 — Revisão médica | Em revisão; PR aberta, sem merge | PR #12 empilhada; complemento D04 técnico aprovado | `feature/pre-ai-medical-review` (real) | [GitHub #13](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/13); implementação `d7314b5d7dfbc59151deea8a312100baf80e36f1`; registro de publicação em commit subsequente |
-| PR 06 — Testes/handoff | Pendente | PR 05 + critérios operacionais D08 | `chore/pre-ai-handoff` (proposta) | Não criados |
+| PR 06 — Testes/handoff | Em revisão; PR aberta, sem merge | PR #13 empilhada; D08 somente testes/documentação/handoff | `chore/pre-ai-handoff` (real) | [GitHub #14](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/14); implementação `a8a5156b31023bc6e0fbd4808ac722123eb73884`; registro de publicação em commit subsequente |
 
 Sequência preservada: 00 → 01 → 02 → 03 → 04 → 05 → 06. Contratos podem ser
 discutidos cedo entre os dois desenvolvedores, sem implementar entregas futuras.
@@ -263,6 +270,15 @@ inventadas para contornar bloqueio. Legado exige fixture explícita, não apenas
 
 ## 9. PR 06 — Testes integrados e handoff
 
+Recorte aprovado: consolidação sem ampliar funcionalidades, serviços reais ou
+infraestrutura. [Matriz de prontidão](READINESS.md) e [matriz de evidências](PRE_AI_VALIDATION.md)
+distinguem demonstração, automação, inspeção humana e pendências produtivas.
+16 testes novos atravessam os serviços/HTTP, mantendo todos os 219 anteriores.
+Dois novos concorrentes ensaiam estado/materialização durante provider pausado,
+além dos dez existentes. Seis scripts visuais reutilizados, oito invocações
+isoladas incluindo stale; seletor compartilhado de browser com oito testes Node.
+Sem migração nova, mudança do contrato/grafo ou dependência Python adicional.
+
 Integrar a trilha fictícia: cadastro → consentimento simulado identificado →
 entrada unificada → persistência/versionamento → fake processing → gate de
 publicação → revisão médica. Verificar falhas sem executar IA/WhatsApp real.
@@ -290,7 +306,7 @@ na sprint posterior, não nesta PR.
 | D05 | Proposta técnica do simulador implementada por autorização da PR 02; contrato/namespace/autenticação/ordem de canais reais continuam pendentes | PR 02 simulado; canais reais não autorizados |
 | D06 | Aprovada técnica fictícia: materialização/proveniência, snapshots da estrutura existente e histórico ready restrito; contrato IA separado na PR 04/D07, retenção/storage produtivos/D08 pendentes | PR 03; produção não autorizada |
 | D07 | Aprovada técnica fictícia em 14/10/2026: ai.v1/port/fake, limites, execução síncrona, retry explícito e obsolescência; contrato/handoff aguardam revisão, IA real não autorizada | PR 04; acordo/handoff do desenvolvedor de IA pendente |
-| D08 | Hosting/homologação, armazenamento privado, backup/restore, segurança e critério de prontidão | Antes de deploy; PR 03/06 conforme escopo |
+| D08 | Parcialmente aprovada no prompt PR 06 para testes/documentação/handoff; hosting/homologação, armazenamento privado, backup/restore, segurança e produção continuam pendentes | PR 06 fictícia; nenhum deploy/uso real autorizado |
 | G01 | Autorizar configuração da proteção main e conceder acesso ao segundo desenvolvedor | Governança; não aplicado em PR 00 |
 
 O solicitante aprovou D01–D04 em 14/10/2026 no prompt de PR 01 empilhada, somente
@@ -415,6 +431,16 @@ legados e running após crash sem recuperação automática. Consequências: mig
 aditiva 0009, testes PG/upgrade/rollback e revisão explícita do contrato/handoff;
 retentativa produtiva/timeout, retenção D08 e IA real exigem outra aprovação.
 
+### D08 — Consolidação aprovada, produção pendente
+
+Prompt PR 06 recebido nesta execução de 17/10/2026 atribui a 14/10/2026 aprovação
+somente de testes integrados, portabilidade dos smokes, documentação e handoff
+para revisão. Não aprova o handoff em nome do segundo desenvolvedor. Alternativa
+adotada: comprovar o fluxo fictício com runner isolado e CI PostgreSQL existentes,
+sem provisionar infraestrutura ou integrar serviços reais. Hosting/homologação,
+storage, backup/restore, retenção, SLA/custos, segurança jurídica/clínica e
+recuperação produtiva exigem decisões próprias. Matriz atual em [READINESS](READINESS.md).
+
 ## 11. Governança Git observada e recomendada
 
 Consulta somente leitura em 14/10/2026: API de proteção de main retornou
@@ -455,6 +481,37 @@ são registros fechados sem merge. Não são entregas concluídas do plano Pré-
 | 14/10/2026 — PR 04 publicada e CI da implementação | [GitHub #12](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/12), base `feature/pre-ai-traceability`, commit `1a4183f` | [CI 38654636895](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38654636895) aprovada, PostgreSQL 17.11, 199 testes sem skips (oito concorrentes e upgrade), 26,518 s. Check/drift/migrate/demo duas vezes aprovados. Contrato/handoff em revisão, sem aprovação/merge. Commit documental seguinte exige nova CI do HEAD final |
 | 14/10/2026 — CI final da base PR 04 | GitHub #12, HEAD `c3d8c2f` | [CI 38654856975](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38654856975) aprovada: PostgreSQL 17.11, 199 testes sem skips, 26,962 s. #8–#12 abertas/intactas |
 | 14/10/2026 — PR 05 publicada e CI da implementação | [GitHub #13](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/13), base `feature/pre-ai-orchestration`, commit `d7314b5` | [CI 38659435529](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38659435529) aprovada em PostgreSQL 17.11: 219 testes sem skips (dez concorrentes e upgrade), 19,653 s. Check/drift/migrate/demo duas vezes aprovados. Sem revisão formal/merge; commit documental seguinte exige nova CI do HEAD final |
+| 17/10/2026 — auditoria da base PR 05 para PR 06 | GitHub #13, HEAD `640e035` | [CI final 38659586285](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/38659586285) confirmada aprovada, PostgreSQL 17.11, 219 testes sem skips, 31,880 s. Base limpa e cadeia #8–#13 aberta/intacta |
+| 17/10/2026 — regressão inicial PR 06 | `chore/pre-ai-handoff`, base `640e035` | Check/drift aprovados; migrate --plan 0001–0010 revisado, sem aplicação em DB preservado. 219 testes SQLite, 209 aprovados/10 concorrentes ignorados, 44,387 s |
+| 17/10/2026 — PR 06 publicada e CI da implementação | [GitHub #14](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/14), base `feature/pre-ai-medical-review`, commit `a8a5156` | [CI 39039513356](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/39039513356) aprovada: PostgreSQL 17.11, 235 testes sem skips, 42,880 s, incluindo doze concorrentes e upgrades. Check/drift/migrate/demo duas vezes aprovados. Sem merge ou aprovação humana do handoff; commit documental seguinte exige nova CI do HEAD final |
+
+Registro PR 06 publicada para revisão: 16 novos testes integrados, sem mudar runtime/models/
+migrations/contrato/grafo. Dois ensaios novos PG; suite alvo SQLite passou com
+14 aprovados/2 ignorados em 3,481 s. Oito testes Node de seleção de navegador
+aprovados. Harness/ai_examples executados com python -S, sem Django/site-packages,
+banco ou credenciais. Smokes ampliados para operação/admin/reutilização e stale;
+primeira rodada executou os oito scripts/invocações, mas uma asserção final do
+harness usou notes em vez de doctor_notes: corrigida e repetida com sucesso.
+Inspeção da captura da recepção mostrou screenshot durante fechamento da gaveta:
+smoke agora aguarda a posição final da animação, sem alterar a UI. Saídas do
+subprocesso também suprimem eventual eco da credencial efêmera em diagnósticos.
+Validação local final: check/drift aprovados; migrate --plan 0001–0010 revisado;
+235 testes, 223 aprovados/12 concorrentes ignorados SQLite, 51,668 s. Suíte visual
+opt-in: 3 testes/8 invocações aprovados em 57,819 s, desktop/mobile, Windows/Edge
+local detectado, Node 24.19.0/Playwright 1.62.1; nenhum browser baixado. Oito testes
+Node aprovados. Dois exemplos Python do handoff executados offline com -S.
+97 links locais conferidos; capturas de publicação/stale/recepção inspecionadas.
+Nenhum defeito funcional identificado, nenhum teste antigo removido.
+Conceito/deploy/ROADMAP/docs/ai e README atualizados; matriz READINESS e relatório
+PRE_AI_VALIDATION novos. AGENTS/CONTRIBUTING revisados sem ajuste: política já
+exige atualização contínua, autorização e revisão. State-engine revisado, sem
+alteração necessária de regras/grafo. CI mantém PG17 em toda base; não provisiona
+browser, portanto visuais são opt-in locais, sem novo gate ou instalação automática.
+Sem PostgreSQL local disponível no PATH; validação concorrente aprovada pela CI real.
+Três bancos com hashes preservados, nenhum servidor reiniciado/DB migrado/seed
+executado fora de banco temporário. Capturas UUID ignoradas, sem credenciais ou
+dados reais no diff. Publicação/CI da implementação aprovadas conforme tabela;
+HEAD documental final deve ser conferido novamente nos checks da PR #14.
 
 Registro PR 05 publicada para revisão: ClinicalPublication, validação interna reutilizada
 da PR 04, publicação explícita, gate clínico comum, autoria/revisões transacionais,
@@ -580,12 +637,13 @@ o grafo atual é simulador e `load_demo` sobrescreve fixtures. Arquivos de mídi
 são locais, não upload/armazenamento privado de produção. Hardening e deploy
 ainda faltam; ver [auditoria conceitual](README.md) e [pendências operacionais](../deploy.md).
 
-Próximo passo desta execução: conferir CI do HEAD documental final da PR #13;
-depois aguardar revisão técnica/humana da PR 05. #8–#12 intactas,
-nenhum merge autorizado. Aguardar
-revisão/aprovação do contrato e handoff antes de iniciar IA independente; publicação
-não satisfaz esse gate. PR 06 é próximo incremento planejado, mas não autorizado
-automaticamente; parar após esta entrega. Não iniciar PR 06 nem fazer merge.
+Próximo passo desta execução: conferir CI PostgreSQL do HEAD documental final
+da PR #14, empilhada sobre #13. Depois PARAR para
+revisão do outro desenvolvedor, incluindo aprovação explícita do contrato/handoff
+em SHA acordado. #8–#13 e main intactas, nenhum merge autorizado. Trabalho IA
+independente pode começar após essa aprovação, sem depender de merges 05/06.
+Infraestrutura/IA/WhatsApp reais, G01 e D08 produtiva exigem autorização específica.
+Não iniciar outro incremento, integrar PRs ou declarar produção pronta.
 
 ## 14. Registro obrigatório em cada entrega
 

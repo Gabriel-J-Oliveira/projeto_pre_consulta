@@ -27,6 +27,11 @@ Atualização PR 05: complemento D04 aprovado em 14/10/2026 somente pré-IA fict
 `c3d8c2f58c6449727fd9289f43d9b99997dc546f`. Médico atribuído/clínica publica
 explicitamente completed→ready após validação build_summary. Sem merge ou PR 06.
 
+Atualização PR 06 (17/10/2026): `chore/pre-ai-handoff`, base PR #13
+`640e0350aed3878fe4171f30bdc6e9ad4658f59e`. D08 parcialmente aprovada no prompt
+para testes/documentação/handoff, não infraestrutura. Consolidação simulada em
+revisão, sem merge, contrato/handoff ainda sujeitos à aprovação do outro dev.
+
 ## 1. Produto e estágio atual
 
 O objetivo é apoiar a preparação de consultas médicas: a recepção registra uma
@@ -62,7 +67,7 @@ accounts/          autenticação: views, URLs, testes e template próprios
 preconsultas/      domínio: modelos, forms, views, URLs, permissões e estados
                    templates/preconsultas/, migrations/, management/commands/
 static/preconsultas/  estilos e comportamento das telas
-scripts/           smoke tests de navegador com Playwright/Edge
+scripts/           smoke tests Playwright, seleção explícita/Chromium/Edge local
 docs/state-engine.md  proposta detalhada e validação do motor de estados
 ```
 
@@ -353,7 +358,7 @@ autoritativo, persistência direta, entrega de mensagens ou liberação `ready`.
 Resultado gerado não constitui diagnóstico nem decisão de publicação. Esses
 limites devem orientar contrato e testes futuros, não criar endpoints nesta PR 00.
 
-## 14. Auditoria técnica da base: reutilizar, não reimplementar
+## 14. Auditoria histórica da base: reutilizar, não reimplementar
 
 Auditoria de 14/10/2026; classificação por recurso, não certificação de produção.
 Evidências apontam para arquivos revisados na base `1e199b4`:
@@ -413,6 +418,9 @@ sem merge. Posteriormente, D06 e a implementação/publicação da PR 03 empilha
 autorizadas expressamente. Posteriormente o prompt PR 04 aprovou D07 técnica e
 implementação/publicação empilhada. O prompt PR 05 aprovou complemento D04 e
 publicação/revisão empilhadas; merge e PR 06 não estão autorizados.
+
+Posteriormente o prompt PR 06 autorizou consolidação/publicação empilhadas e
+recorte D08 de validação/documentação/handoff. Sem merge ou integração real.
 
 ## 16. Contrato de ingestão PR 02 — D05 restrita à simulação
 
@@ -656,3 +664,30 @@ clínicos/publicação continuam fora do Admin; sem endpoints novos de paciente/
 Sem chamadas externas. Ready não é validação clínica; D08, segurança semântica,
 assinatura/laudo, consentimento real, recuperação/republicação e produção permanecem
 pendentes. Contrato/handoff IA ainda exigem aprovação humana própria.
+
+## 20. Consolidação pré-IA — PR 06
+
+Arquitetura simulada final preserva os apps e suas fronteiras: accounts autentica
+sessão; preconsultas autoriza médico/clínica/recepção, registra cadastro e estado,
+consentimento versionado e entrada sim.v1. traceability materializa entradas em
+fontes e captura revisões; ai_orchestration constrói contexto/versionamento e
+chama port/fake sem locks longos; publication valida/publica explicitamente e
+clinical_access controla leitura/revisão/obsolescência. UI/URLs continuam no app.
+Fluxo E2E positivo usa esses serviços, não promove estado via ORM para simular
+integração. Materialização posterior pode invalidar resultado/publicação sem
+apagar histórico ou alterar estado operacional. Correções não mudam a fonte/IA.
+
+PR 06 não altera models, migrações 0001–0010, DTO ai.v1, grafo, autorização ou
+serviços funcionais. Acrescenta 16 testes integrados (dois concorrentes PG),
+consolida smokes isolados/portáveis e documentação. Os 219 testes anteriores
+permanecem. Não há libs/serviços produtivos novos, mídia real, IA/WhatsApp,
+storage, infraestrutura, republicação ou recuperação automática de running.
+
+Referências atuais (a tabela da seção 14 é auditoria HISTÓRICA da main):
+[matriz de prontidão](READINESS.md), [cenários/evidências](PRE_AI_VALIDATION.md),
+[execução segura](../deploy.md), [handoff versionado](../ai/handoff.md).
+Backend controla gates/persistência/publicação; IA implementa provedor/semântica
+no contrato único aprovado. Revisão humana deve registrar revisor/data/SHA;
+CI/publicação desta PR não a substituem. Após essa aprovação, IA independente
+não depende de merge das PRs 05/06 ou de homologação/produção. D08 produtiva,
+segurança jurídica/clínica e implantação permanecem pendentes.

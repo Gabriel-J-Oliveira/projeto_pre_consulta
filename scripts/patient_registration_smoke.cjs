@@ -1,13 +1,10 @@
-const { chromium } = require("playwright");
+const { launchBrowser } = require("./smoke_browser.cjs");
 const { authenticate } = require("./smoke_auth.cjs");
 let browser;
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 (async () => {
-  browser = await chromium.launch({
-    executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    headless: true,
-  });
+  browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
