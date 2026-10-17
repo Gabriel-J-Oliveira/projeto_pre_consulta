@@ -1,8 +1,7 @@
-const { chromium } = require("playwright");
+const { launchBrowser } = require("./smoke_browser.cjs");
 const { authenticate } = require("./smoke_auth.cjs");
 
 const url = (process.env.SMOKE_BASE_URL || "http://127.0.0.1:8000") + "/medico/pre-consultas/demo/";
-const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 let activeBrowser;
 
 function assert(condition, message) {
@@ -10,7 +9,7 @@ function assert(condition, message) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: browserPath, headless: true });
+  const browser = await launchBrowser();
   activeBrowser = browser;
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const runtimeErrors = [];

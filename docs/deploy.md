@@ -96,7 +96,7 @@ python manage.py showmigrations preconsultas --plan
 python manage.py migrate
 ```
 
-Migrações de domínio nesta branch PR 05: `0001`–`0010`; não apagar, renumerar, fazer
+Migrações de domínio nesta branch PR 06: `0001`–`0010`; não apagar, renumerar, fazer
 `--fake` ou reiniciar o histórico. PR 00 não cria/aplica migração. SQLite usa
 `db.sqlite3` da cópia atual; transferência de dados para PostgreSQL não é
 automática nem está aprovada como operação desta preparação.
@@ -190,7 +190,8 @@ inicial e correções concorrentes; ignorados no SQLite, não confundir com apro
 Publicação obsoleta é preservada/bloqueada; marca momento/usuário de necessidade
 de validação e execução obsolete. Nenhuma mudança de estado ou republicação automática.
 
-Smokes médicos opt-in reutilizam scripts existentes com Node/Playwright/Edge:
+Smokes opt-in reutilizam scripts existentes com Node/Playwright e navegador
+previamente instalado; configuração detalhada na seção 6:
 
 ```powershell
 python manage.py test preconsultas.visual_smoke
@@ -199,11 +200,12 @@ python manage.py test preconsultas.visual_smoke
 Esse módulo NÃO é descoberto pela suíte padrão/CI. StaticLiveServerTestCase cria
 banco temporário e porta livre (não 8000/8001); credencial aleatória só no processo
 de teste, sem imprimir/salvar segredo ou credencial padrão. Executa dashboard_smoke,
-browser_smoke e publication_smoke em desktop/mobile; seed/feedback/correção somente
+browser_smoke, publication_smoke (inclusive obsolescência), reception_smoke,
+permissions_smoke e patient_registration_smoke em desktop/mobile; seed/feedback/correção somente
 no banco TEMPORÁRIO. Capturas de dados fictícios em subdiretórios UUID de artifacts/
 ignorados; não incluir no commit. Node deve resolver Playwright instalado (NODE_PATH
-do runtime local se necessário); não é nova dependência da aplicação/CI. Referência
-Windows de Edge permanece a dos smokes existentes. Nenhum servidor preservado é parado.
+do runtime local se necessário); não é nova dependência da aplicação/CI. Nenhum
+servidor preservado é parado. PR 06 não acrescenta migração nem altera schema ai.v1.
 
 ### Simulador de ingestão — somente banco fictício isolado
 
@@ -260,6 +262,7 @@ No ambiente configurado de desenvolvimento/teste, nunca com conexão de produç�
 ```powershell
 python manage.py check
 python manage.py makemigrations --check --dry-run
+python manage.py migrate --plan
 python manage.py test
 ```
 
@@ -267,16 +270,61 @@ Django usa banco temporário no backend escolhido. Não apontar o teste para um
 banco de validação como `TEST.NAME`, nem usar `--keepdb` sobre dados preservados.
 No PostgreSQL, o usuário de teste precisa poder criar o banco de teste.
 
-Smokes existentes, opcionais nesta PR documental: `browser_smoke.cjs`,
-`dashboard_smoke.cjs`, `reception_smoke.cjs`, `permissions_smoke.cjs` e
-`patient_registration_smoke.cjs`. Requerem Node/Playwright e Edge no caminho
-atualmente fixado pelos scripts. Não constituem smokes portáveis de deploy.
-Forneça `SMOKE_BASE_URL`, `SMOKE_USERNAME`, `SMOKE_PASSWORD` apenas no ambiente,
-sem imprimir valores; use conta já configurada e perfil apropriado. O smoke de
-permissões usa `SMOKE_ROLE`; o de pacientes exige os campos `SMOKE_PATIENT_*`,
-`SMOKE_DOCTOR_ID` e `SMOKE_CLINIC_ID` documentados no próprio script. O smoke de
-pré-consulta registra interações demonstrativas; não rodá-lo indiscriminadamente
-sobre o banco de validação. Registre scripts realmente executados no ROADMAP.
+### E2E de backend e contrato offline
+
+```powershell
+python manage.py test preconsultas.test_pre_ai_integration
+python -S -m preconsultas.ai_examples
+```
+
+O E2E usa cadastro HTTP, consentimento/estados/ingestão/proveniência, três operações
+fake, publicação e revisão. Sem migração no DB preservado, estado forçado no caminho
+positivo ou serviço externo. Dois novos ensaios concorrentes exigem PostgreSQL;
+os dez anteriores permanecem. SQLite aprovado não comprova serialização de linhas.
+O comando com -S usa apenas biblioteca padrão e fixtures, sem Django/.env/DB.
+Início do adaptador stubado e fronteiras: [handoff](ai/handoff.md).
+
+### Smokes isolados, desktop/mobile
+
+Requerem Node e Playwright já disponíveis; não fazem npm install, download de
+navegadores ou alteração de configurações pessoais automaticamente. O runner
+`python manage.py test preconsultas.visual_smoke` usa DB temporário/porta livre
+e cria senha aleatória somente em memória/processo de teste. Executa seis scripts
+reutilizados, oito invocações incluindo perfis recepção/admin e caso obsoleto.
+Não exige conta padrão nem lê senha de conta local. Capturas UUID em artifacts/
+ficam ignoradas pelo Git. Não rodar scripts mutantes contra DB preservado.
+
+Seleção centralizada em `scripts/smoke_browser.cjs`, nesta ordem:
+
+1. `SMOKE_BROWSER_PATH`: caminho ABSOLUTO de um navegador existente.
+2. OU `SMOKE_BROWSER_CHANNEL`: `chromium`, `chrome` ou `msedge`. Não combinar
+   caminho e canal. Chromium deve estar provisionado; Chrome/Edge são canais locais.
+3. Sem seleção explícita: Chromium do Playwright se instalado; depois Edge em
+   dois caminhos Windows conhecidos. Sem fallback silencioso se a opção explícita falhar.
+
+Se nenhum existir, o smoke falha com diagnóstico e NÃO conta como aprovado.
+Não baixar browser automaticamente para resolver a falha. Em outras plataformas,
+use Chromium já disponível ou seleção explícita; disponibilidade não é presumida.
+`SMOKE_NODE_BINARY` pode apontar ao executável Node; alternativamente use PATH.
+`NODE_PATH` é opcional para localizar Playwright previamente instalado fora do
+projeto. Nenhum caminho de runtime pessoal é distribuído como configuração padrão.
+
+```powershell
+node --test scripts/smoke_browser.test.cjs
+python manage.py test preconsultas.visual_smoke
+```
+
+Oito testes Node verificam seleção/erros sem navegador. São diferentes de executar
+smokes reais. Invocação direta de scripts exige `SMOKE_BASE_URL`, `SMOKE_USERNAME`,
+`SMOKE_PASSWORD` no ambiente e pasta artifacts/ existente no diretório de execução;
+prefira o runner isolado. Não imprimir credenciais. `permissions_smoke` usa
+`SMOKE_ROLE`; `patient_registration_smoke` usa `SMOKE_PATIENT_*`, `SMOKE_DOCTOR_ID`
+e `SMOKE_CLINIC_ID`. O runner preenche tudo com fixtures locais temporárias.
+`publication_smoke` usa `SMOKE_CASE_SLUG`; modo obsoleto usa `SMOKE_EXPECT_STALE=1`
+e `SMOKE_SOURCE_KEY` após materialização legítima de fonte adicional pelo runner.
+
+Evidências por cenário: [validação pré-IA](planning/PRE_AI_VALIDATION.md).
+Capturas inspecionadas não são homologação clínica nem produtiva.
 
 ## 7. CI existente e gates propostos
 
@@ -289,6 +337,11 @@ A CI não faz deploy, smoke browser, backup/restore ou validação de HTTPS. PR 
 inclui dois ensaios concorrentes de domínio no PostgreSQL; isso não constitui
 teste de carga nem validação completa de produção. Check aprovado não comprova
 prontidão para dados reais.
+Na PR 06, a suíte padrão inclui o E2E e doze testes de concorrência PostgreSQL
+(dez anteriores + dois novos). Smokes permanecem opt-in LOCAIS: workflow não
+provisiona Node/Playwright/browser. Não foi adicionado gate dependente de browser
+ausente nem workflow manual não validado. Um job visual futuro exige navegador
+explicitamente provisionado e validação própria; helper já suporta Chromium.
 Publicação da PR 00 autorizada após revisão local; resultados da CI da entrega
 serão registrados no ROADMAP, sem inferir aprovação da configuração do workflow.
 Evidência histórica da base e resultados locais ficam no [ROADMAP](planning/ROADMAP.md).

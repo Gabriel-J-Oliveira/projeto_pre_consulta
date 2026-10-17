@@ -5,6 +5,12 @@ para dados fictícios. Contrato implementado para **revisão**; publicação nã
 handoff, segurança clínica ou integração real. Sem rede, LLM, WhatsApp, transcrição,
 filas, publicação, novos endpoints ou interfaces. [Handoff](handoff.md).
 
+Consolidação PR 06: contrato/limites ai.v1 e port permanecem INALTERADOS sobre
+`640e0350aed3878fe4171f30bdc6e9ad4658f59e`. [Handoff versionado](handoff.md)
+reúne início offline, adaptador stubado e gates humanos; [evidências integradas](../planning/PRE_AI_VALIDATION.md)
+conectam processamento à publicação/revisão da PR 05. Publicar testes não aprova
+handoff, uso real ou segurança semântica.
+
 ## Portas e responsabilidades
 
 `preconsultas.ai_provider.AIProvider` é um Protocol sem imports Django:
@@ -234,8 +240,10 @@ Unicidade de identity e execução/número e bounds de tentativa no banco.
 
 Contexto alterado enquanto provedor executa: tentativa/execução `obsolete`, resultado
 validado preservado só para auditoria, nunca atual. Perda de autorização: falha,
-resposta descartada. Mudança posterior: `current_result` revalida request/refs/output
-e marca obsolete, retorna None. Versões anteriores não são promovidas novamente.
+resposta descartada. Mudança posterior: `current_result` revalida request/refs/output.
+No fluxo legado explícito marca obsolete e retorna None; no publicado, o gate
+da PR 05 nega leitura, registra necessidade de validação e marca obsolete,
+preservando a publicação. Versões anteriores não são promovidas novamente.
 SQL/QuerySet privilegiado ainda pode alterar dados: não é WORM nem RLS produtivo.
 Locks da consulta/fontes e constraints serializam os novos serviços no PostgreSQL;
 SQLite não comprova concorrência. Escritores legados ainda merecem integração futura.

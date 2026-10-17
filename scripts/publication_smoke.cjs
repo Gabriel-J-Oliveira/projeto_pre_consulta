@@ -1,4 +1,4 @@
-const { chromium } = require("playwright");
+const { launchBrowser } = require("./smoke_browser.cjs");
 const { authenticate } = require("./smoke_auth.cjs");
 const base = process.env.SMOKE_BASE_URL;
 const slug = process.env.SMOKE_CASE_SLUG;
@@ -6,12 +6,31 @@ let browser;
 function assert(value, message) { if (!value) throw new Error(message); }
 
 (async () => {
-  browser = await chromium.launch({ executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe", headless: true });
+  browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await authenticate(page, base + "/medico/painel/");
   const row = page.locator(`[data-consultation="${slug}"]`);
+  if (process.env.SMOKE_EXPECT_STALE === "1") {
+    assert((await row.innerText()).includes("nova validação explícita"), "Painel não sinaliza publicação obsoleta.");
+    assert(await row.locator("a[href], form[action*='/publicar/']").count() === 0, "Painel liberou link ou republicação obsoleta.");
+    const csrf = await page.locator('.logout-form [name="csrfmiddlewaretoken"]').inputValue();
+    for (const route of [`/medico/pre-consultas/${slug}/`,
+      `/medico/pre-consultas/demo/anexos/${process.env.SMOKE_SOURCE_KEY}/status/`,
+      `/medico/pre-consultas/demo/anexos/${process.env.SMOKE_SOURCE_KEY}/conteudo/`]) {
+      assert((await page.request.get(base + route)).status() === 403, "Conteúdo obsoleto não foi bloqueado.");
+    }
+    assert((await page.request.post(base + `/medico/pre-consultas/${slug}/apontamentos/`, {
+      form: { text: "Não persistir: publicação obsoleta.", csrfmiddlewaretoken: csrf },
+    })).status() === 403, "Publicação obsoleta permitiu revisão.");
+    for (const [name, width] of [["desktop", 1440], ["mobile", 390]]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.screenshot({ path: `artifacts/publicacao-obsoleta-${name}.png`, fullPage: true });
+    }
+    console.log(JSON.stringify({ staleDashboard: true, staleDetailAndAttachmentsBlocked: true, stalePostBlocked: true, desktopMobile: true }));
+    return;
+  }
   const button = row.getByRole("button", { name: "Publicar síntese simulada" });
   assert(await button.isVisible(), "Publicação não disponível no painel autorizado.");
   assert(await page.locator(".summary-item").count() === 0, "Conteúdo foi exposto antes da publicação.");

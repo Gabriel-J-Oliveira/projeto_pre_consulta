@@ -1,4 +1,4 @@
-const { chromium } = require("playwright");
+const { launchBrowser } = require("./smoke_browser.cjs");
 const { authenticate } = require("./smoke_auth.cjs");
 const base = process.env.SMOKE_BASE_URL || "http://127.0.0.1:8001";
 const role = process.env.SMOKE_ROLE;
@@ -6,13 +6,12 @@ const target = role === "admin" ? "/admin/" : "/recepcao/pre-consultas/";
 let browser;
 
 (async () => {
-  browser = await chromium.launch({
-    executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    headless: true,
-  });
+  browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await authenticate(page, base + target);
   await page.screenshot({ path: `artifacts/permissions-${role}.png`, fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: `artifacts/permissions-${role}-mobile.png`, fullPage: true });
   if (role === "admin") {
     for (const path of ["/admin/preconsultas/clinic/", "/admin/auth/user/",
       "/admin/preconsultas/doctor/", "/admin/preconsultas/receptionprofile/"]) {
