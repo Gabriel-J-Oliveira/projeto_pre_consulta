@@ -5,6 +5,29 @@ branch `chore/pre-ai-handoff`. Dados fictícios; banco temporário do runner.
 Resultados/SHAs/PR/CI reais ficam no [ROADMAP](ROADMAP.md) e na descrição/checks
 da PR, sem duplicar logs ou antecipar aprovação do HEAD final.
 
+## Resultados registrados
+
+Implementação publicada na [PR #14](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/pull/14),
+SHA `a8a5156b31023bc6e0fbd4808ac722123eb73884`, sem merge.
+
+| Execução | Backend/ambiente | Resultado |
+| --- | --- | --- |
+| Regressão inicial dos 219 anteriores | SQLite temporário | 209 aprovados, 10 concorrentes ignorados; 44,387 s |
+| Suíte final 219 anteriores +16 novos | SQLite temporário | 223 aprovados, 12 concorrentes ignorados; 235 encontrados, 51,668 s |
+| Visual opt-in final | Windows, Node 24.19.0, Playwright 1.62.1, Edge existente detectado, DB temporário/porta dinâmica | 3 testes, oito invocações aprovadas, 57,819 s; desktop/mobile e capturas inspecionadas |
+| Seletor de browser Node | Sem DB/Playwright/browser reais nos testes unitários | Oito aprovados |
+| Handoff/fake offline | Python 3.14.4 com -S, biblioteca padrão | Dois exemplos executáveis, ai_examples e conformidade de três operações/quatro tipos aprovados, sem Django/site-packages |
+| CI da implementação a8a5156 | PostgreSQL 17.11, Python 3.14, serviço descartável | [Run 39039513356](https://github.com/Gabriel-J-Oliveira/projeto_pre_consulta/actions/runs/39039513356): 235 aprovados sem skips, 42,880 s; check/drift/migrate/demo duas vezes aprovados |
+
+A CI acima validou explicitamente a implementação, incluindo os doze ensaios de
+concorrência. Este registro documental é um commit posterior; conferir a CI de
+seu HEAD final nos checks da PR. Browser/Node unitários foram locais, NÃO CI.
+Nenhum banco/servidor preservado foi alterado; três hashes SQLite permaneceram
+iguais. Diff e 97 links locais revisados, sem arquivos sensíveis/artefatos no Git.
+Primeira rodada visual encontrou referência notes em vez de doctor_notes no novo
+harness; corrigida. Inspeção corrigiu timing da captura de animação na recepção.
+Todas as repetições finais passaram, sem mudança de regras funcionais.
+
 ## Matriz de cenários automatizados
 
 Novos testes em [test_pre_ai_integration.py](../../preconsultas/test_pre_ai_integration.py).
